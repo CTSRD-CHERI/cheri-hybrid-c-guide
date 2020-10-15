@@ -1,0 +1,429 @@
+\documentclass[12pt,twoside,openright,a4paper]{article}
+%\documentclass[12pt,twoside,openright,usletter]{article}
+% !TeX spellcheck = en_US
+%\documentclass[11pt]{article}
+% UK date format in bibliography:
+\usepackage[british]{babel}
+\usepackage[inner=25mm,outer=25mm,top=20mm,bottom=20mm]{geometry}
+
+%\usepackage[UKenglish]{isodate}%UK date endian
+\usepackage[headings]{fullpage}
+\usepackage[hidelinks]{hyperref}
+
+% Bibliography:
+\usepackage[utf8]{inputenc}
+\usepackage{csquotes,xpatch}% recommended
+% list up to 99 names instead of the default 3
+\usepackage[backend=biber,bibencoding=utf8,style=numeric,maxnames=99,backref=false,sortcites,datamodel=thesis]{biblatex}
+\addbibresource{cheri.bib}
+\AtEveryBibitem{%
+% Don't print ISBN,issn, or URL dates
+\clearfield{issn}%
+\clearfield{isbn}%
+\clearfield{urldate}%
+\clearfield{urlyear}%
+}
+
+\usepackage{bytefield}
+\usepackage{color}
+\usepackage[scaled=0.8]{DejaVuSansMono}
+\usepackage[T1]{fontenc}
+\usepackage{listings}
+\usepackage{mdframed} % To avoid linebreaks in lstlistings
+\lstnewenvironment{clisting}[1][]{\endgraf\noindent\minipage{\linewidth}\lstset{language={C},breaklines=true,frame=L,#1}}{\endminipage\endgraf}
+\lstnewenvironment{compilerwarning}[1][]{\endgraf\noindent\minipage{\linewidth}\lstset{language={},breaklines=true,basicstyle=\scriptsize\ttfamily\bfseries,frame=L,#1}}{\endminipage\endgraf}
+
+\usepackage{subcaption}
+\usepackage{times}
+\usepackage{url}
+\usepackage[svgnames]{xcolor}
+\definecolor{lightgray}{gray}{0.8}
+\usepackage{xspace}
+\usepackage{xfrac}
+
+\usepackage[nameinlink,noabbrev,capitalise]{cleveref}
+
+% drawing over lstlistings (code stolen from nwf)
+\usepackage{tikz}
+   \usetikzlibrary{decorations.pathreplacing}
+   \usetikzlibrary{fit}
+   \usetikzlibrary{tikzmark}
+   \usetikzlibrary{calc}
+   \usetikzlibrary{patterns}
+\newcommand*{\vcpgfmark}[1]{\ensuremath{\vcenter{\hbox{\pgfmark{#1}}}}}
+% GBP symbol should be safe since it's easy to enter (at least on a UK keyboard) and won't be in any valid lstlistings
+\lstset{escapechar=£} % Note: ensure this doesn't occur in any of the code
+\newcommand{\TikzListingHighlight}[3][]{\tikz[overlay,remember picture]{\draw[\ifstrempty{#1}{yellow}{#1}, line width=10pt,opacity=0.3](#2) -- (#3);}}
+\newcommand*{\TikzListingHighlightStartEnd}[2][]{\tikz[overlay,remember picture]{\draw[\ifstrempty{#1}{yellow}{#1}, line width=10pt,opacity=0.3](pic cs:Start#2) -- (pic cs:End#2);}}
+
+
+\renewcommand{\UrlFont}{\ttfamily\small}
+
+\newcommand{\baselineboxformatting}[1]{%
+  % Measure size of contents
+  \sbox0{#1}%
+  % Use the difference between the contents' height and the bitbox's height,
+  % clamped to [-.44\baselineskip, 0], as our minimum depth.
+  \setlength{\skip0}{\ht0 - \height}%
+  \ifdim\skip0>0pt%
+    \setlength{\skip0}{0}%
+  \else%
+    \ifdim\skip0<-.44\baselineskip%
+      \setlength{\skip0}{-.44\baselineskip}%
+    \fi%
+  \fi%
+  \centering\rule[\skip0]{0pt}{\height}#1}
+\bytefieldsetup{boxformatting=\baselineboxformatting}
+
+\lstset{basicstyle=\footnotesize\ttfamily}
+%\newcommand{\ccode}[1]{\lstinline[language={C}]{#1}}
+%\newcommand{\cxxcode}[1]{\lstinline[language={C++}]{#1}}
+\newcommand{\ccode}[1]{{\small\ttfamily{#1}}}
+\newcommand{\cxxcode}[1]{{\ccode{#1}}}
+\newcommand{\cconst}[1]{{\ccode{#1}}}
+\newcommand{\cfunc}[1]{{\ccode{#1()}}}
+\newcommand{\cvar}[1]{{\ccode{#1}}}
+\newcommand{\pathname}[1]{{\ccode{#1}}}
+\newcommand{\commandline}[1]{{\ccode{#1}}}
+
+\newcommand{\ptrdifft}{{\ccode{ptrdiff\_t}}\xspace}
+\newcommand{\maxalignt}{{\ccode{max\_align\_t}}\xspace}
+\newcommand{\sizet}{{\ccode{size\_t}}\xspace}
+\newcommand{\ssizet}{{\ccode{ssize\_t}}\xspace}
+\newcommand{\ptraddrt}{{\ccode{ptraddr\_t}}\xspace}
+\newcommand{\cuintptrt}{{\ccode{uintptr\_t}}\xspace}
+\newcommand{\cintptrt}{{\ccode{intptr\_t}}\xspace}
+\newcommand{\ccharstar}{{\ccode{char *}}\xspace}
+\newcommand{\cvoidstar}{{\ccode{void *}}\xspace}
+\newcommand{\clongt}{{\ccode{long}}\xspace}
+\newcommand{\cintt}{{\ccode{int}}\xspace}
+\newcommand{\cintttt}{{\ccode{int32\_t}}\xspace}
+\newcommand{\cintsft}{{\ccode{int64\_t}}\xspace}
+
+\newcommand{\uucap}{{\ccode{\_\_capability}}\xspace}
+\newcommand{\attrcap}{{\ccode{\_\_attribute\_\_((cheri\_capability))\xspace}}}
+
+\newcommand{\SIGPROT}{{\ccode{SIGPROT}}\xspace}
+
+\newcommand{\note}[2]{{\color{blue}[ Note: #1 - #2]}}
+\usepackage{xstring}
+\IfSubStr*{\jobname}{final}{
+  \renewcommand{\note}[2]{\relax\ifhmode\unskip\fi}
+}{
+  % show comments by default
+}
+
+\newcommand{\arnote}[1]{\note{#1}{Alex R.}}
+\newcommand{\bdnote}[1]{\note{#1}{Brooks D.}}
+\newcommand{\rwnote}[1]{\note{#1}{Robert W.}}
+\newcommand{\amnote}[1]{\note{#1}{Alfredo M.}}
+\newcommand{\psnote}[1]{\note{#1}{Peter S.}}
+\newcommand{\pgnnote}[1]{\note{#1}{Peter N.}}
+\newcommand{\jrtcnote}[1]{\note{#1}{Jess C.}}
+\newcommand{\hmnote}[1]{\note{#1}{Hesham A.}}
+\newcommand{\nwfnote}[1]{\note{#1}{nwf}}
+
+% typeset C++ sensibly
+\usepackage{relsize}
+\newcommand*{\cpp}[1][]{C\textsmaller[2]{\nolinebreak[4]\hspace{-.05em}\raisebox{.45ex}{\textbf{++}}}}
+% And another macro sensible PDF metadata:
+\newcommand*{\cppInHeader}[1][]{\texorpdfstring{\cpp{}}{C++}}
+\newcommand*{\purecapCOrCpp}[1]{CHERI C/\cpp{}}
+\newcommand*{\hybridCOrCpp}[1]{CHERI Hybrid C/\cpp{}}
+
+\hyphenation{Free-BSD}
+\hyphenation{Free-RTOS}
+\hyphenation{Cheri-BSD}
+\hyphenation{Cheri-Free-RTOS}
+\hyphenation{Cheri-ABI}
+\hyphenation{Web-Kit}
+\hyphenation{Postgre-SQL}
+
+\title{CHERI Hybrid C/\cppInHeader{} Programming Guide \\ (DRAFT)}
+\author{Robert N. M. Watson$^*$, \textbf{(others to be added)}}
+
+%
+%Alexander Richardson$^*$,
+%  Brooks Davis$^\dagger$, \\
+%  John Baldwin$^\ddagger$, David Chisnall$^\S$, Jessica Clarke$^*$,
+%  Nathaniel Filardo$^*$, \\
+%  Simon W. Moore$^*$,  Edward Napierala$^*$, Peter Sewell$^*$, and \\
+%  Peter G. Neumann$^\dagger$ \\
+%  \\
+%  $^*$University of Cambridge, $^\dagger$SRI International, \\
+%  $^\ddagger$Ararat River Consulting, LLC and $^\S$Microsoft Research}
+
+\begin{document}
+\sloppy
+
+%% CL tech-report format provides its own cover page.  Comment for final
+%% version.
+\maketitle
+
+%% CL tech-report format requires page numbering to start at 3.  Uncomment for
+%% final version.
+%\setcounter{page}{3}
+%%
+
+%
+% Keep Abstract in sync with the Introduction.
+%
+\newcommand{\abstracttext}{
+
+This document is a brief introduction to the \hybridCOrCpp{} programming
+language, which allows the selective use of CHERI capabilities from within an
+otherwise unmodified, and ABI-compatible, C/\cpp{}-language code base.
+As with \purecapCOrCpp{}, described in a separate report, \hybridCOrCpp{}
+enables forms of C/\cpp{}-language safety, but CHERI protections are applied
+only to specifically annotated pointers.
+\hybridCOrCpp{} primarily sees use in low-level systems code: boot loaders,
+operating-system kernels, and inter-process communication runtimes.
+For example, hybrid code is used in the CheriBSD kernel, and in the userspace
+run-time environment for hybrid processes to enable communication with
+pure-capability processes via co-process IPC.
+}
+
+
+\begin{abstract}
+\abstracttext
+\end{abstract}
+
+\newpage
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+\newpage
+
+\section{Introduction}
+
+%
+% Keep Abstract in sync with the Introduction.
+%
+\abstracttext{}
+
+This is a companion to the \textit{\purecapCOrCpp{} Programming
+Guide}~\cite{XXX}, and refers to that report rather than replicating its
+contents.
+Readers will benefit from first having read that document before this one, as
+many behaviors in \hybridCOrCpp{} are based on those in \purecapCOrCpp{}, or
+will be contrasted with it in this guide.
+The report \textit{Introduction to CHERI} technical report~\cite{} will also
+provide valuable background material required to understand this guide.
+
+\subsection{Objective of \hybridCOrCpp{}}
+
+As with \purecapCOrCpp{}, \hybridCOrCpp{} allows C and \cpp{} source code to
+be compiled to use architectural capabilities in the generated machine code.
+Unlike \purecapCOrCpp{}, the default is to implement C and \cpp{} pointers using
+architectural integers.
+To implement a pointer as a capability, the qualifier \attrcap{} is used on
+a pointer type.
+This is typically abbreviated as \uucap{}, which is what will be found in
+almost all \hybridCOrCpp{} code.
+
+This is a relatively weak integration of CHERI support with the language and
+run-time environment offering limited memory protection only in very specific
+circumstances.
+Except where Application Programming Interfaces (APIs) have been extended to
+support explicit capability arguments or return values, pointers will not
+be protected by capability integrity, pointer provenance validity, bounds,
+permissions, or monotonicity.
+For example, \cfunc{malloc} will not return pointers as capabilities with
+bounds set, and also may not align or pad allocations such that they can be
+bounded imprecisely without loss of spatial protection relative to adjacent
+allocations.
+Further, the control-flow and other data structures used by C and the C
+runtime themselves do not use capabilities, and so some of the resilience to
+exploitation found in \purecapCOrCpp{}, such as return addresses and stack
+pointers implemented using capabilities, are not found in \hybridCOrCpp{}.
+
+Despite these limitations, \hybridCOrCpp{} is an invaluable tool in specific
+programming environments; for example:
+
+\begin{itemize}
+\item The \hybridCOrCpp{} compiled CheriBSD kernel is almost entirely
+  conventional C/\cpp{} implemented using integer pointers, except for its
+  handling of system-call arguments and capability state, which is manually
+  annotated.
+
+\item XXX More?
+
+\end{itemize}
+
+\subsection{Limitations}
+
+\subsubsection{Incomplete safety}
+
+\subsubsection{Referential safety}
+
+\subsubsection{Spatial safety}
+
+\subsubsection{Temporal safety}
+
+\subsection{Origins of bounds and permissions on pointers}
+
+\section{Casts between integer and capability pointers}
+
+\rwnote{DDC}
+
+\subsection{Casts from integer to capability pointers}
+
+\subsection{Casts from capability to integer pointers}
+
+\section{Recommended use of C-language types}
+\label{sec:recommended-c-types}
+
+\rwnote{This needs updating for hybrid use.}
+
+As confusion frequently arises about the most appropriate types to use for
+integers, pointers, and pointer-related values, we make the following
+recommendations:
+
+\begin{description}
+\item[\cintt, \cintttt, \clongt, \cintsft,
+  \ldots{}] These pure integer types should be used to hold integer values
+  that will never be cast to a pointer type without first combining them with
+  another pointer value -- e.g., by using them as an array offset.
+  Most integers in a C/\cpp{}-language program will be of these types.
+
+\item[\ptraddrt] This is a new integer type introduced by CHERI C and should be used to hold
+  addresses.
+  \ptraddrt should not be directly cast to a pointer type for
+  dereference; instead, it must be combined with an existing valid capability
+  to the address space to generate a dereferenceable pointer.
+  Typically, this is done using the \ccode{cheri\_address\_set(c, x)} function.
+
+\item[\sizet, \ssizet] These integer types should be used
+  to hold the unsigned or signed lengths of regions of address space.
+  \arnote{\sizet not necessary the same as unsigned \ptrdifft.}
+
+\item[\ptrdifft] This integer type describes the difference of indices
+  between two pointers to elements of the same array, and should not be used for
+any other purpose.
+  It can be added to a pointer to obtain a new pointer, but the result will
+  be dereferenceable only if the address lies within the bounds of the
+  pointer from which it was derived.
+
+  \note{Isn't that last sentence true of any combination?}{nwf}
+
+  Less standards-compliant code sometimes uses \ptrdifft when the
+  programmer more likely meant \cintptrt or (less commonly)
+  \sizet.
+  When porting code, it is worthwhile to audit use of \ptrdifft.
+
+  \note{Should we recommend that \sizet be used to hold lengths of
+  allocations and \ptrdifft be used to talk about spans of
+  address space (e.g., the offsets between two subobjects of an allocation)?  I feel
+  like the recommendations here are not as concrete as I'd like.}{nwf}
+
+\item[\cintptrt, \cuintptrt] These integer types should be
+  used to hold values that may be valid pointers if cast back to a pointer
+  type.
+  When an \cintptrt is assigned an integer value -- e.g., due to
+  constant initialization to an integer in the source -- and the result is
+  cast to a pointer type, the pointer will be invalid and hence
+  non-dereferenceable.
+  These types will be used in two cases: (1) Where there is uncertainty as to
+  whether the value to be held will be an integer or a pointer -- e.g., for an
+  opaque argument to a callback function; or (2) Where it is more convenient
+  to place a pointer value in an integer type for the purposes of arithmetic
+  (which takes place on the capability's address and in units of bytes, as if
+  the pointer had been cast to \texttt{char *}).
+
+  The observable, integer range of a \cuintptrt is the same as
+  that of a \ptraddrt (or \ptrdifft for \cintptrt), despite the increased \emph{alignment} and \emph{storage} requirements.
+
+\item[\ccode{intmax\_t}, \ccode{uintmax\_t}] According to the C standard\arnote{7.20.1.5 Greatest-width integer types}, these integer types should be \enquote{capable of representing any value of any (unsigned) integer type}.
+  In \purecapCOrCpp{}, they are not provenance-carrying and can represent the integer \emph{range} of \cuintptrt/\cintptrt, but not the capability metadata or tag bit.
+  As the observable value of \cuintptrt/\cintptrt is the pointer address range, we believe this choice to be compatible with the C standard.
+
+  Additionally, due to ABI constraints, it would be extremely difficult to change the width of these types from 64 to 129 bits.
+  This is also true for other architectures such as x86: despite Clang and GCC supporting an \ccode{\_\_int128} type, \ccode{intmax\_t} remains 64 bits wide.
+
+  We generally do not recommend use of these types in \purecapCOrCpp{}.
+  However, the types may be useful in \cfunc{printf} calls (using the \ccode{\%j} format string width modifier) as the \pathname{inttypes.h} \ccode{PRI*} macros can be rather verbose.
+
+
+\item[\maxalignt] This type is defined in C as \enquote{an object type whose alignment is the greatest fundamental alignment} \arnote{C2x \S{}7.19.2} and this includes capability types for \purecapCOrCpp{}.
+% and in \cpp{} as a \enquote{type whose alignment requirement is at least as great as that of every scalar type}\arnote{C++17 \S{}21.2.4p5}
+We found that some custom allocators use \ccode{sizeof(long double)} or \ccode{sizeof(uint64\_t)} to align their return values.
+While this appears to work on most architectures, in \purecapCOrCpp{} this must be changed to \ccode{alignof(\maxalignt)}\kern-2pt.%
+%
+\footnote{%
+It is important to use \ccode{alignof} instead of \ccode{sizeof} since many
+common implementations, such as GCC and FreeBSD, define \maxalignt as a
+\ccode{struct} and not a \ccode{union}.}
+
+\item[\ccharstar, \ldots{}] These pointer types are suitable for
+  dereference, but in general \psnote{that ``in general'' makes me wonder about the exceptions?}
+  \arnote{The only exception I can think of is requiring \cvoidstar due to bad API design (callback parameters, etc).}  should not be cast to or from arbitrary integer
+  values.
+  Valid pointers are always derived from other valid pointers (including those cast to \cintptrt or \cuintptrt), and cannot be
+  constructed using arbitrary integer arithmetic.
+\end{description}
+
+It is important to note that \cuintptrt is no longer the same size as
+\sizet. This difference may require making some changes to
+existing code to use the correct type depending on whether the variable
+needs to be able store a pointer type. In cases where this is not obvious
+(such as for a callback argument), we recommend the use of \cuintptrt.
+This ensures that provenance is maintained.
+
+\pgnnote{The above section begs questions relating to what is the
+  responsibility of programmers and what can be aided or managed by
+  compilers.  Ideally, the latter would be preferable to requiring
+  programmers to understand things are possibly beyond their so-called
+  experience.}
+
+\section{The CHERI hybrid process environment}
+
+\section{Further reading}
+\label{sec:further_reading}
+
+\rwnote{Update: The two real references are likely the CHERI C/C++ guide and
+the Introduction to CHERI report}
+
+The primary reference for the CHERI Instruction-Set Architecture (ISA) is the
+ISA specification; at the time of writing, the most recent version is CHERI
+ISAv7~\cite{UCAM-CL-TR-927}:
+
+\smallskip
+\noindent
+\url{https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-927.pdf}
+\smallskip
+
+\noindent
+Our technical report, \textit{An Introduction to CHERI}, provides a high-level
+overview of the CHERI architecture, ISA modeling, hardware implementations,
+and software stack~\cite{UCAM-CL-TR-941}:
+
+\smallskip
+\noindent
+\url{https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-941.pdf}
+\smallskip
+
+\section{Acknowledgements}
+
+\rwnote{Update feedback acknowledgments here.}
+
+\rwnote{Add authors of CHERI C/C++ Programming Guide who don't end up being
+  authors on this document.}
+
+We gratefully acknowledge the helpful feedback from our colleagues, including
+Hesham Almatary,
+Ruben Ayrapetyan, Silviu Baranga, Jacob Bramley, Rod Chapman, Paul Gotch, Al Grant,
+Brett Gutstein, Alfredo Mazzinghi, Alan Mycroft, and Lee Smith.
+This work was supported by the Defense Advanced Research Projects Agency (DARPA) and the Air Force Research Laboratory (AFRL), under contracts
+FA8750-10-C-0237 (``CTSRD'') and HR0011-18-C-0016 (``ECATS'').
+The views, opinions, and/or findings contained in this report are those of the authors and should not be interpreted as representing the official views or policies of the Department of Defense or the U.S. Government.
+This work was supported in part by the Innovate UK project Digital Security by
+Design (DSbD) Technology Platform Prototype, 105694.
+This project has received funding from the European Research Council
+(ERC) under the European Union’s Horizon 2020 research and innovation programme (grant agreement No 789108), ERC Advanced Grant ELVER.
+We also acknowledge the EPSRC REMS Programme Grant (EP/K008528/1), Arm Limited,
+HP Enterprise, and Google, Inc.
+Approved for Public Release, Distribution Unlimited.
+
+\printbibliography
+
+\end{document}
