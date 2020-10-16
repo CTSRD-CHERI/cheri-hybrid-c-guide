@@ -139,9 +139,17 @@
 \hyphenation{Web-Kit}
 \hyphenation{Postgre-SQL}
 
-\title{CHERI Hybrid C/\cppInHeader{} Programming Guide \\ (DRAFT)}
-\author{Robert N. M. Watson$^*$, \textbf{(others to be added)}}
-
+\title{Request for Comments: \\
+  CHERI Hybrid C/\cppInHeader{} Programming Guide \\
+  (DRAFT)}
+\author{Robert~N.~M.~Watson$^*$,
+    Alexander~Richardson$^*$,
+    Jessica~Clarke$^*$,
+  \\
+    \textbf{(others to be added)}
+  \\
+  \\
+  $^*$University of Cambridge}
 %
 %Alexander Richardson$^*$,
 %  Brooks Davis$^\dagger$, \\
@@ -171,16 +179,28 @@
 \newcommand{\abstracttext}{
 
 This document is a brief introduction to the \hybridCOrCpp{} programming
-language, which allows the selective use of CHERI capabilities from within an
+language.
+\hybridCOrCpp{} allows the selective use of CHERI capabilities from within an
 otherwise unmodified, and ABI-compatible, C/\cpp{}-language code base.
 As with \purecapCOrCpp{}, described in a separate report, \hybridCOrCpp{}
-enables forms of C/\cpp{}-language safety, but CHERI protections are applied
-only to specifically annotated pointers.
-\hybridCOrCpp{} primarily sees use in low-level systems code: boot loaders,
-operating-system kernels, and inter-process communication runtimes.
-For example, hybrid code is used in the CheriBSD kernel, and in the userspace
-run-time environment for hybrid processes to enable communication with
-pure-capability processes via co-process IPC.
+enables forms of C/\cpp{}-language safety.
+However, CHERI protections are applied only to specifically annotated
+pointers, rather than to all pointers.
+Because of the requirement for ABI compatibility, implied pointers within the
+language runtime itself are also primarily implemented as integers rather than
+capabilities.
+
+\hybridCOrCpp{} primarily sees use in specialized low-level systems code: boot
+loaders, operating-system kernels, and inter-process communication runtimes.
+Hybrid code is used in the CheriBSD kernel, and in the userspace run-time
+environment for hybrid processes to enable communication with pure-capability
+processes via co-process IPC.
+Because manual annotation is required, and there is limited support for
+capabilities in the run-time environment, substantial additional compare is
+required.
+
+As \hybridCOrCpp{} remains an area of active research and development, this
+report is a request for review and comments rather than a specification.
 }
 
 
@@ -201,25 +221,43 @@ pure-capability processes via co-process IPC.
 %
 \abstracttext{}
 
+\subsection{Background}
+
 This is a companion to the \textit{\purecapCOrCpp{} Programming
-Guide}~\cite{XXX}, and refers to that report rather than replicating its
-contents.
+Guide}~\cite{UCAM-CL-TR-947}, and refers to that report rather than
+replicating its contents.
 Readers will benefit from first having read that document before this one, as
 many behaviors in \hybridCOrCpp{} are based on those in \purecapCOrCpp{}, or
 will be contrasted with it in this guide.
-The report \textit{Introduction to CHERI} technical report~\cite{} will also
-provide valuable background material required to understand this guide.
+The report \textit{Introduction to CHERI} technical
+report~\cite{UCAM-CL-TR-941} will also provide valuable background material
+required to understand this guide.
 
-\subsection{Objective of \hybridCOrCpp{}}
+\section{Objective of \hybridCOrCpp{}}
 
 As with \purecapCOrCpp{}, \hybridCOrCpp{} allows C and \cpp{} source code to
 be compiled to use architectural capabilities in the generated machine code.
-Unlike \purecapCOrCpp{}, the default is to implement C and \cpp{} pointers using
-architectural integers.
+Unlike \purecapCOrCpp{}, which utilizes capabilities to implement both
+explicit pointers in the language (e.g., pointers declared as local variables)
+and implied pointers in the runtime (e.g., return addresses), the default in
+\hybridCOrCpp{} is to implement C and \cpp{} pointers using architectural
+integers unless otherwise specified.
+For readability, instances of pointers implemented as capabilities are
+referred to as \textit{capability pointers}, and instances of pointers
+implemented as integers are referred to as \textit{integer pointers}.
+
+\subsection{\uucap{}}
+
 To implement a pointer as a capability, the qualifier \attrcap{} is used on
 a pointer type.
 This is typically abbreviated as \uucap{}, which is what will be found in
 almost all \hybridCOrCpp{} code.
+No other language-visible pointer will be implemented as a capability.
+Some implied pointers, such as those implementing global variables, are also
+be implemented as capabilities, in order that capability pointers taken to
+those objects have the desired capability properties (such as bounds).
+
+\subsection{Limitations}
 
 This is a relatively weak integration of CHERI support with the language and
 run-time environment offering limited memory protection only in very specific
@@ -236,29 +274,68 @@ Further, the control-flow and other data structures used by C and the C
 runtime themselves do not use capabilities, and so some of the resilience to
 exploitation found in \purecapCOrCpp{}, such as return addresses and stack
 pointers implemented using capabilities, are not found in \hybridCOrCpp{}.
+Specific limitations by protection type are:
+
+\subsubsection{Incomplete referential, spatial, and temporal safety}
+
+\begin{itemize}
+\item Integer pointers, returned by various memory allocators by default, do
+  not implement capability protections including tag, bounds, and permissions.
+  As a result, integer pointers suffer from a lack of provenance validity and
+  spatial safety.
+
+\item Whenever a capability pointer type is cast to an integer pointer type,
+  its capability metadata, including tag, bounds, and permissions, are lost.
+  The resulting integer pointer will be dereferenced relative to the Default
+  Data Capability (DDC), and uses those bounds and permissions, which may be
+  substantial, and provenance validity is not implemented.
+
+\item Whenever an integer pointer type is cast to a capability pointer type,
+  the compiler will derive the new capability from DDC without refining its
+  bounds or permissions, offering provenance validity but not privilege
+  minimization.
+
+\item Both explicit function pointers and implied pointers such as return
+  addresses and PLT entries are implemented as integer pointers, and therefore
+  lack provenance validity, bounds, and permissions.
+
+\item Other data structures implemented by the language runtime and compiler,
+  such as the stack, are also implemented using integer pointers that do not
+  implement provenance validity, bounds, or permissions.
+
+\item CHERI temporal safety relies on capability implementation of pointers,
+  so that the tag, bounds, and permissions can be utilized to detect stale
+  pointers to quarantined memory.
+  As many pointers in a hybrid program are implemented using integers,
+  temporal safety is unable to precisely find all pointers or arrange for
+  their suitably atomic replacement.
+\end{itemize}
+
+As a result of these limitations, privilege minimization in the language
+runtime, control-flow mechanisms, and user data types is largely unimplementd.
+Protections are only refined and enforced for programmer-selected types, which
+can offer substantial value in specific scenarios, but is not a source of
+general robustness for the C and C++ implementations.
+All privilege reductions are programmer-implemented through explicit calls to
+narrow bounds and permissions.
+
+\subsection{Use cases}
 
 Despite these limitations, \hybridCOrCpp{} is an invaluable tool in specific
 programming environments; for example:
 
-\begin{itemize}
-\item The \hybridCOrCpp{} compiled CheriBSD kernel is almost entirely
+\begin{description}
+\item[Hybrid CheriBSD kernel]
+  The \hybridCOrCpp{} compiled CheriBSD kernel is almost entirely
   conventional C/\cpp{} implemented using integer pointers, except for its
   handling of system-call arguments and capability state, which is manually
   annotated.
 
+\item{Co-process IPC libraries in hybrid processes}
+
 \item XXX More?
 
-\end{itemize}
-
-\subsection{Limitations}
-
-\subsubsection{Incomplete safety}
-
-\subsubsection{Referential safety}
-
-\subsubsection{Spatial safety}
-
-\subsubsection{Temporal safety}
+\end{description}
 
 \subsection{Origins of bounds and permissions on pointers}
 
