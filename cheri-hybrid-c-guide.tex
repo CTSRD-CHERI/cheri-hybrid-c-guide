@@ -101,7 +101,6 @@
 \newcommand{\cintsft}{{\ccode{int64\_t}}\xspace}
 
 \newcommand{\uucap}{{\ccode{\_\_capability}}\xspace}
-\newcommand{\attrcap}{{\ccode{\_\_attribute\_\_((cheri\_capability))\xspace}}}
 
 \newcommand{\SIGPROT}{{\ccode{SIGPROT}}\xspace}
 
@@ -248,10 +247,8 @@ implemented as integers are referred to as \textit{integer pointers}.
 
 \subsection{\uucap{}}
 
-To implement a pointer as a capability, the qualifier \attrcap{} is used on
+To implement a pointer as a capability, the qualifier \uucap{} is used on
 a pointer type.
-This is typically abbreviated as \uucap{}, which is what will be found in
-almost all \hybridCOrCpp{} code.
 No other language-visible pointer will be implemented as a capability.
 Some implied pointers, such as those implementing global variables, are also
 be implemented as capabilities, in order that capability pointers taken to
