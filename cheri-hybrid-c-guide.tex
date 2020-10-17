@@ -123,8 +123,9 @@
 \newcommand{\nwfnote}[1]{\note{#1}{nwf}}
 
 % typeset C++ sensibly
+% NB: \nolinebreak was only made robust upstream on 2019-08-20
 \usepackage{relsize}
-\newcommand*{\cpp}{\texorpdfstring{C\textsmaller[2]{\nolinebreak[4]\hspace{-.05em}\raisebox{.45ex}{\textbf{++}}}}{C++}}
+\newcommand*{\cpp}{\texorpdfstring{C\textsmaller[2]{\protect\nolinebreak[4]\hspace{-.05em}\raisebox{.45ex}{\textbf{++}}}}{C++}}
 \newcommand*{\purecapCOrCpp}{CHERI C/\cpp{}}
 \newcommand*{\hybridCOrCpp}{CHERI Hybrid C/\cpp{}}
 
