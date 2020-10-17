@@ -124,9 +124,7 @@
 
 % typeset C++ sensibly
 \usepackage{relsize}
-\newcommand*{\cpp}[1][]{C\textsmaller[2]{\nolinebreak[4]\hspace{-.05em}\raisebox{.45ex}{\textbf{++}}}}
-% And another macro sensible PDF metadata:
-\newcommand*{\cppInHeader}[1][]{\texorpdfstring{\cpp{}}{C++}}
+\newcommand*{\cpp}[1][]{\texorpdfstring{C\textsmaller[2]{\nolinebreak[4]\hspace{-.05em}\raisebox{.45ex}{\textbf{++}}}}{C++}}
 \newcommand*{\purecapCOrCpp}[1]{CHERI C/\cpp{}}
 \newcommand*{\hybridCOrCpp}[1]{CHERI Hybrid C/\cpp{}}
 
@@ -139,7 +137,7 @@
 \hyphenation{Postgre-SQL}
 
 \title{Request for Comments: \\
-  CHERI Hybrid C/\cppInHeader{} Programming Guide \\
+  CHERI Hybrid C/\cpp{} Programming Guide \\
   (DRAFT)}
 \author{Robert~N.~M.~Watson$^*$,
     Alexander~Richardson$^*$,
