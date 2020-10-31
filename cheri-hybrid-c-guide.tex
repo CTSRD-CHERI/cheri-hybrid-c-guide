@@ -127,7 +127,8 @@
 \usepackage{relsize}
 \newcommand*{\cpp}{\texorpdfstring{C\textsmaller[2]{\protect\nolinebreak[4]\hspace{-.05em}\raisebox{.45ex}{\textbf{++}}}}{C++}}
 \newcommand*{\purecapCOrCpp}{CHERI C/\cpp{}}
-\newcommand*{\hybridCOrCpp}{CHERI Hybrid C/\cpp{}}
+\newcommand*{\CHERIhybridCOrCpp}{CHERI Hybrid C/\cpp{}}
+\newcommand*{\hybridCOrCpp}{Hybrid C/\cpp{}}
 
 \hyphenation{Free-BSD}
 \hyphenation{Free-RTOS}
@@ -138,11 +139,12 @@
 \hyphenation{Postgre-SQL}
 
 \title{Request for Comments: \\
-  CHERI Hybrid C/\cpp{} Programming Guide \\
+  \CHERIhybridCOrCpp{} Programming Guide \\
   (DRAFT)}
 \author{Robert~N.~M.~Watson$^*$,
     Alexander~Richardson$^*$,
     Jessica~Clarke$^*$,
+    Peter~G.~Neumann
   \\
     \textbf{(others to be added)}
   \\
@@ -176,7 +178,7 @@
 %
 \newcommand{\abstracttext}{
 
-This document is a brief introduction to the \hybridCOrCpp{} programming
+This document is a brief introduction to the \CHERIhybridCOrCpp{} programming
 language.
 \hybridCOrCpp{} allows the selective use of CHERI capabilities from within an
 otherwise unmodified, and ABI-compatible, C/\cpp{}-language code base.
