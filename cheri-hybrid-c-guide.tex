@@ -143,13 +143,18 @@
   (DRAFT)}
 \author{Robert~N.~M.~Watson$^*$,
     Alexander~Richardson$^*$,
-    Jessica~Clarke$^*$,
-    Peter~G.~Neumann
+    Jessica~Clarke$^*$, \\
+    John Baldwin$^\ddagger$,
+    David Chisnall$^\S$,
+    Brooks Davis$^\dagger$,
+    Simon W. Moore$^*$, \\
+    Peter~G.~Neumann$^\dagger$
   \\
     \textbf{(others to be added)}
   \\
   \\
-  $^*$University of Cambridge}
+  $^*$University of Cambridge, $^\dagger$SRI International, \\
+  $^\ddagger$Ararat River Consulting, LLC and $^\S$Microsoft Research}
 %
 %Alexander Richardson$^*$,
 %  Brooks Davis$^\dagger$, \\
@@ -158,8 +163,6 @@
 %  Simon W. Moore$^*$,  Edward Napierala$^*$, Peter Sewell$^*$, and \\
 %  Peter G. Neumann$^\dagger$ \\
 %  \\
-%  $^*$University of Cambridge, $^\dagger$SRI International, \\
-%  $^\ddagger$Ararat River Consulting, LLC and $^\S$Microsoft Research}
 
 \begin{document}
 \sloppy
@@ -178,34 +181,50 @@
 %
 \newcommand{\abstracttext}{
 
-This document is a brief introduction to the \CHERIhybridCOrCpp{} programming
+This document is an introduction to the \CHERIhybridCOrCpp{} programming
 language.
 \hybridCOrCpp{} allows the selective use of CHERI capabilities from within an
-otherwise unmodified, and ABI-compatible, C/\cpp{}-language code base.
-As with \purecapCOrCpp{}, described in a separate report, \hybridCOrCpp{}
-enables forms of C/\cpp{}-language safety.
-However, CHERI protections are applied only to specifically annotated
-pointers, rather than to all pointers.
-Because of the requirement for ABI compatibility, implied pointers within the
+otherwise unmodified, and Application Binary Interface (ABI)-compatible,
+C/\cpp{}-language code base.
+Its aim is to allow management of, and interoperation with, capability-enabled
+code while using an integer rather than capability pointer implementation
+internally.
+Unlike in \purecapCOrCpp{}, \hybridCOrCpp{} defaults to an integer
+implementation for pointers except where specifically annotated in the
+program source code.
+Due to the requirement for ABI compatibility, implied pointers within the
 language runtime itself are also primarily implemented as integers rather than
 capabilities.
 
-\hybridCOrCpp{} primarily sees use in specialized low-level systems code: boot
-loaders, operating-system kernels, and inter-process communication runtimes.
-Hybrid code is used in the CheriBSD kernel, and in the userspace run-time
-environment for hybrid processes to enable communication with pure-capability
-processes via co-process IPC.
-Because manual annotation is required, and there is limited support for
-capabilities in the run-time environment, substantial additional compare is
-required.
+\hybridCOrCpp{} primarily sees use in specialized low-level systems code that,
+for compatibility or performance reasons, must use non-capability pointers.
+Current use cases includes boot loaders, operating-system kernels, and
+Inter-Process Communication (IPC) runtimes.
+Potential future use cases include programs that have been formally verified
+(which do not require dynamic memory safety) and language runtimes (which may
+have high dynamic pointer memory access patterns making wider pointer sizes
+unrealistic).
 
+%Hybrid code is used in the CheriBSD kernel, and in the userspace run-time
+%environment for hybrid processes to enable communication with pure-capability
+%processes via co-process IPC.
+Because the benefits of referential, spatial, and temporal memory safety are
+unavailable to both the program and language runtime, care should be utilized,
+and its use should be avoided where not strictly necessary.
+}
+
+\newcommand{\reviewwarning}{
+\textbf{
 As \hybridCOrCpp{} remains an area of active research and development, this
 report is a request for review and comments rather than a specification.
 }
-
+\rwnote{This last sentence will go away in a final version.}
+}
 
 \begin{abstract}
 \abstracttext
+
+\reviewwarning
 \end{abstract}
 
 \newpage
@@ -219,41 +238,67 @@ report is a request for review and comments rather than a specification.
 %
 % Keep Abstract in sync with the Introduction.
 %
-\abstracttext{}
-
-\subsection{Background}
+\abstracttext
 
 This is a companion to the \textit{\purecapCOrCpp{} Programming
 Guide}~\cite{UCAM-CL-TR-947}, and refers to that report rather than
 replicating its contents.
-Readers will benefit from first having read that document before this one, as
+Readers will benefit from having read that document prior to this one, as
 many behaviors in \hybridCOrCpp{} are based on those in \purecapCOrCpp{}, or
 will be contrasted with it in this guide.
 The report \textit{Introduction to CHERI} technical
-report~\cite{UCAM-CL-TR-941} will also provide valuable background material
-required to understand this guide.
+report~\cite{UCAM-CL-TR-941} will also provide background material for this
+guide.
+
+\section{Status of this document}
+
+This document is a request for comments and feedback, and not a stable
+specification.
+This document currently describes three variants of \hybridCOrCpp{}:
+
+\begin{enumerate}
+\item \hybridCOrCpp{} as implemented in the CHERI Clang/LLVM implementation on
+  CHERI-MIPS and CHERI-RISC-V
+\item \hybridCOrCpp{} as implemented in the CHERI Clang/LLVM implementation on
+  Morello (which differs in small but important ways)
+\item Our current on next directions for \hybridCOrCpp{}
+\end{enumerate}
+
+\noindent
+We have attempted to clearly comment on these behavioral divergences where
+required.
+It is our aim to achieve convergence of these approaches.
+Feedback may be submitted via pull requests or the issue tracker on our
+GitHub repository for the report:
+
+\url{https://github.com/CTSRD-CHERI/cheri-hybrid-c-guide}
 
 \section{Objective of \hybridCOrCpp{}}
 
-As with \purecapCOrCpp{}, \hybridCOrCpp{} allows C and \cpp{} source code to
-be compiled to use architectural capabilities in the generated machine code.
-Unlike \purecapCOrCpp{}, which utilizes capabilities to implement both
-explicit pointers in the language (e.g., pointers declared as local variables)
-and implied pointers in the runtime (e.g., return addresses), the default in
-\hybridCOrCpp{} is to implement C and \cpp{} pointers using architectural
-integers unless otherwise specified.
-For readability, instances of pointers implemented as capabilities are
-referred to as \textit{capability pointers}, and instances of pointers
-implemented as integers are referred to as \textit{integer pointers}.
+\hybridCOrCpp{} aims to allow programs primarily written to use conventional
+integer pointers throughout its design and implementation, and yet interact
+with capabilites via modest C-language extensions that cause specific
+annotated pointers to be implemented using capabilities.
+This is in contrast to \purecapCOrCpp{}, which implements all pointers as
+capabilities by default, and whose aim is strong referential, spatial, and
+temporal memory protection for C/\cpp{}.
+Instances of pointers implemented as capabilities are referred to as
+\textit{capability pointers}, and instances of pointers implemented as
+integers are referred to as \textit{integer pointers}.
 
-\subsection{\uucap{} qualifier}
 
-To implement a pointer as a capability, the qualifier \uucap{} is used on
-a pointer type.
-No other language-visible pointer will be implemented as a capability.
-Some implied pointers, such as those implementing global variables, are also
-be implemented as capabilities, in order that capability pointers taken to
-those objects have the desired capability properties (such as bounds).
+\section{\uucap{} qualifier}
+
+To implement a pointer as a capability in \hybridCOrCpp{}, the qualifier
+\uucap{} is used on a pointer type.
+Unqualified language-visible pointers will not be implemented as capabilities.
+Some implied pointers in the language runtime, such as those implementing
+global variables, are also be implemented as capabilities, in order that
+capability pointers taken to those objects have the desired capability
+properties (such as bounds).
+Integer pointers will continue to use integer variants of those pointers in
+the language runtime, without perturbing source code or Application Binary
+Interface (ABI).
 
 \subsection{Limitations}
 
