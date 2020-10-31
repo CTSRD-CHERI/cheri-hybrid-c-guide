@@ -275,17 +275,52 @@ GitHub repository for the report:
 
 \section{Objective of \hybridCOrCpp{}}
 
-\hybridCOrCpp{} aims to allow programs primarily written to use conventional
-integer pointers throughout its design and implementation, and yet interact
-with capabilites via modest C-language extensions that cause specific
+\hybridCOrCpp{} aims to allow programs to be written to use conventional
+integer pointers throughout their implementations, and yet also to interact
+with capabilites via modest C-language extensions causing specifically
 annotated pointers to be implemented using capabilities.
 This is in contrast to \purecapCOrCpp{}, which implements all pointers as
 capabilities by default, and whose aim is strong referential, spatial, and
 temporal memory protection for C/\cpp{}.
-Instances of pointers implemented as capabilities are referred to as
-\textit{capability pointers}, and instances of pointers implemented as
-integers are referred to as \textit{integer pointers}.
 
+\section{Definitions}
+
+We are concerned with pointers arising from two parts of the C implementation:
+
+\begin{description}
+\item[Explicit pointers] are pointers visible in the program source such as
+  declared pointers taken to local, global, or thread-local variables, to
+  functions, or pointers to returned heap allocations.
+  These pointers will be implemented using capabilities only if specifically
+  annotated.
+
+\item[Implied pointers] are those used by the language runtime and generated
+  code to manage the language implementation itself such as the stack pointer,
+  program counter and return addresses, PLT entries, vtable pointers, and
+  GOT/captable pointers.
+  These pointers will be implemented using integers, although in some cases
+  underlying data structures will be replicated to provide capability versions
+  of them.
+\end{description}
+
+\noindent
+Pointers may then be implemented in one of two ways in generated code:
+
+\begin{description}
+\item[Integer pointers] are pointers implemented as integers.
+  Storage size and alignment will be the architectural address size.
+  Generated code will utilize integer load and store instructions to access
+  variables of these types, and dereference them using integer-relative
+  instructions.
+  Variables will be of this type by default.
+
+\item[Capability pointers] are pointers implemented using capabilities.
+  Storage size and alignment will be the architectural capability size.
+  Generated code will utilize capability load and store instructions to access
+  variables of these types, and dereference them using capability-relative
+  instructions.
+  Variables will only be of this type if specifically annotated.
+\end{description}
 
 \section{\uucap{} qualifier}
 
