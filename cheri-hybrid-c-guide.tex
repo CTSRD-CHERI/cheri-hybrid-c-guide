@@ -104,6 +104,9 @@
 
 \newcommand{\SIGPROT}{{\ccode{SIGPROT}}\xspace}
 
+\newcommand{\futurevariant}[1]{{\color{blue} #1}}
+\newcommand{\morellovariant}[1]{{\color{red} #1}}
+
 \newcommand{\note}[2]{{\color{blue}[ Note: #1 - #2]}}
 \usepackage{xstring}
 \IfSubStr*{\jobname}{final}{
@@ -265,11 +268,11 @@ This document currently describes three variants of \hybridCOrCpp{}:
 \item \hybridCOrCpp{} as implemented in the CHERI Clang/LLVM implementation on
   Morello (which differs in small but important ways).
 
-  Key differences are in {\color{red} red text}.
+  Key differences are in \morellovariant{red text}.
 
 \item Our current thinking on next directions for \hybridCOrCpp{}.
 
-  Key differences are in {\color{blue} blue text}.
+  Key differences are in \futurevariant{blue text}.
 \end{enumerate}
 
 \noindent
@@ -343,43 +346,95 @@ Pointers may be implemented using two underlaying architectural types:
   (e.g., by providing a GOT and a captable).
 \end{description}
 
-\section{\uucap{} qualifier}
+\section{Explicit pointers}
 
-To implement an explicit pointer as a capability in \hybridCOrCpp{}, the
-qualifier \uucap{} is used on a pointer type.
-Unqualified explicit pointers will be implemented as integer pointers.
+Explicit pointers can be implemented as capability pointers in several ways:
 
-\section{Pointers within generated code and the language runtime}
+\begin{description}
+\item[Pointers qualified with \uucap{}]
+  To implement an explicit pointer as a capability in \hybridCOrCpp{}, the
+  qualifier \uucap{} is used on a pointer type.
+  For example, \ccode{char * \_\_capability c} declares a capability pointer
+  to a \ccode{char}.
+  Unqualified explicit pointers will be implemented as integer pointers.
 
-Wherever the ABI dictates that implied pointers must be integer pointers, that
-will be maintained by \hybridCOrCpp{} code generation and in the language
-runtime.
-For example, the hybrid ABI requires that the stack pointer be an integer
-pointer.
+\item[Other pointers that have no ABI impact]
+  \futurevariant{There are opportunities to compile code using capability
+  pointers, where using a different underlying architectural type has no
+  impact on the ABI exposed (or potentially exposed) to other code.
+  For example, unescaped pointers to local variables may be suitable for
+  capability-pointer compilation.
+  Other constraints may exist, such as the non-embedding of the pointer's size
+  in escaped values.
+  Further research is required to evaluate the viability and usefulness of
+  this potential approach.}
 
-In some cases, implied pointers may be implemented as capability pointers
-without impacting the ABI.
-{\color{blue} For example, hybrid code could use a capability return address
-rather than an integer return address to provide pointer provenance validity
-for the return address, even if not tight bounds, as the return address is not
-part of the ABI to other functions.}
-\jrtcnote{\cfunc{\_\_builtin\_return\_address} does leak these implied pointers
-to some code, and it has implications for things like libunwind, so it does
-affect the ABI. Also the kernel needs to know to put a capability in CRA in
-order for signal handlers to be able to return to \cfunc{sigcode}. There's a
-lot of subtlety here that needs to be captured.}
+\item[Other pointers that have a policy-contrained ABI impact]
+  \futurevariant{There is also the opportunity to have a policy-determined
+  impact on ABI, in which an explicit policy might allow compilation of
+  larger portions of code in a manner that more substantively impacts ABI.
+  Such policies might explicitly identify function types and data structures
+  (e.g., public APIs) with public ABI guarantees while permitting substantial
+  variation in other compiled code (e.g., private APIs).
+  Further research is required to evaluate the viability and usefulness of
+  this potential approach.}
+\end{description}
 
-In other cases, implied pointers may be replicated, with a full set of integer
-pointer variants provided for the existing ABI, but additional capability
-pointer variants provided for hybrid code.
-{\color{blue} For example, a separate captable could be provided, replicating
-the set of entries in the existing GOT, to allow capability pointers taken to
-global variables to have desired bounds and permissions.}
-{\color{red} In the Morello ABI, capability pointers taken to globals pick up
-bounds and other metadata from constant pools of capabilities, effectively
-small per-function captables manually created by the compiler.}
+\rwnote{Do we want a new item, ``Implied pointers that have a limited impact
+  on ABI''?  E.g., to capture the CRA case?}
 
-\subsection{Limitations}
+\section{Implied pointers}
+
+We consider three cases:
+
+\begin{description}
+\item[Implied pointers critical to the ABI]
+  Wherever the ABI dictates that implied pointers must be integer pointers,
+  that will be maintained by \hybridCOrCpp{} code generation and in the
+  language runtime.
+  For example, the hybrid ABI requires that the stack pointer be an integer
+  pointer.
+
+\item[Implied pointers invisible to the ABI]
+  In some cases, implied pointers may be implemented as capability pointers
+  without impacting the ABI.
+
+  {\color{blue} For example, hybrid code could use a capability return address
+  rather than an integer return address to provide pointer provenance validity
+  for the return address, even if not tight bounds, as the return address is
+  not part of the ABI to other functions.}
+  \jrtcnote{\cfunc{\_\_builtin\_return\_address} does leak these implied
+  pointers to some code, and it has implications for things like libunwind, so
+  it does affect the ABI. Also the kernel needs to know to put a capability in
+  CRA in order for signal handlers to be able to return to \cfunc{sigcode}.
+  There's a lot of subtlety here that needs to be captured.}
+  \rwnote{I'd been pondering whether the ABI might allow us to use a return
+  capability, but in which unwind/etc only looked at the lower 64 bits...  And
+  I suppose the builtin could be polymorphic.  But signals are indeed a messy
+  issue.
+  Is there a better example we could give?}
+
+\item[Implied pointers that can be replicated as integer and capability
+  pointers]
+  In other cases, implied pointers may be replicated, with a full set of
+  integer pointer variants provided for the existing ABI, but additional
+  capability pointer variants provided for hybrid code.
+
+  \futurevariant{For example, a separate captable could be provided,
+  replicating the set of entries in the existing GOT, to allow capability
+  pointers taken to global variables to have desired bounds and permissions.}
+
+  \morellovariant{In the Morello ABI, capability pointers taken to globals
+  pick up bounds and other metadata from constant pools of capabilities,
+  effectively small per-function captables manually created by the compiler.}
+\end{description}
+
+\section{\& address-of operator}
+
+\rwnote{TODO: whether it returns an integer pointer or is polymorphic.  If not
+  polymorphic, what we recommend.}
+
+\section{Limitations}
 
 This is a relatively weak integration of CHERI support with the language and
 run-time environment offering limited memory protection only in very specific
