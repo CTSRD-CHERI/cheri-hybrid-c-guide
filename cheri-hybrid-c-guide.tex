@@ -364,6 +364,11 @@ without impacting the ABI.
 rather than an integer return address to provide pointer provenance validity
 for the return address, even if not tight bounds, as the return address is not
 part of the ABI to other functions.}
+\jrtcnote{\cfunc{\_\_builtin\_return\_address} does leak these implied pointers
+to some code, and it has implications for things like libunwind, so it does
+affect the ABI. Also the kernel needs to know to put a capability in CRA in
+order for signal handlers to be able to return to \cfunc{sigcode}. There's a
+lot of subtlety here that needs to be captured.}
 
 In other cases, implied pointers may be replicated, with a full set of integer
 pointer variants provided for the existing ABI, but additional capability
