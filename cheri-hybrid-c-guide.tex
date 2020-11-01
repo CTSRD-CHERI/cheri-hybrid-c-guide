@@ -138,7 +138,7 @@
 \hyphenation{Web-Kit}
 \hyphenation{Postgre-SQL}
 
-\title{Request for Comments: \\
+\title{Review Draft: \\
   \CHERIhybridCOrCpp{} Programming Guide \\
   (DRAFT)}
 \author{Robert~N.~M.~Watson$^*$,
@@ -258,18 +258,28 @@ This document currently describes three variants of \hybridCOrCpp{}:
 
 \begin{enumerate}
 \item \hybridCOrCpp{} as implemented in the CHERI Clang/LLVM implementation on
-  CHERI-MIPS and CHERI-RISC-V
+  CHERI-MIPS and CHERI-RISC-V.
+
+  Unless otherwise indicated, all statements refer to this model.
+
 \item \hybridCOrCpp{} as implemented in the CHERI Clang/LLVM implementation on
-  Morello (which differs in small but important ways)
-\item Our current on next directions for \hybridCOrCpp{}
+  Morello (which differs in small but important ways).
+
+  Key differences are in {\color{red} red text}.
+
+\item Our current thinking on next directions for \hybridCOrCpp{}.
+
+  Key differences are in {\color{blue} blue text}.
 \end{enumerate}
 
 \noindent
 We have attempted to clearly comment on these behavioral divergences where
 required.
-It is our aim to achieve convergence of these approaches.
-Feedback may be submitted via pull requests or the issue tracker on our
-GitHub repository for the report:
+It is our aim to achieve convergence of these approaches so that a single
+\CHERIhybridCOrCpp{} can be used across all architectures, and best addresses
+all use cases.
+Feedback on this draft may be submitted via pull requests or the issue tracker
+on our GitHub repository for the report:
 
 \url{https://github.com/CTSRD-CHERI/cheri-hybrid-c-guide}
 
@@ -304,36 +314,65 @@ We are concerned with pointers arising from two parts of the C implementation:
 \end{description}
 
 \noindent
-Pointers may then be implemented in one of two ways in generated code:
+Pointers may be implemented using one of two underlaying architectural types
+in generated code:
 
 \begin{description}
 \item[Integer pointers] are pointers implemented as integers.
-  Storage size and alignment will be the architectural address size.
+  Storage size and alignment will be the architectural address size (e.g.,
+  64 bits on a 64-bit architecture in a 64-bit process environment).
+
   Generated code will utilize integer load and store instructions to access
   variables of these types, and dereference them using integer-relative
   instructions.
-  Variables will be of this type by default.
+
+  Explicit pointers will be of this type by default.
+  Implied pointers will be of this type if required by the existing ABI.
 
 \item[Capability pointers] are pointers implemented using capabilities.
-  Storage size and alignment will be the architectural capability size.
+  Storage size and alignment will be the architectural capability size (e.g.,
+  128 bits on a 64-bit architecture in a 64-bit process environment).
+
   Generated code will utilize capability load and store instructions to access
   variables of these types, and dereference them using capability-relative
   instructions.
-  Variables will only be of this type if specifically annotated.
+
+  Explicit pointers will only be of this type if specifically annotated in the
+  program source.
+  Implied pointers may be of this type if it does not harm the ABI; some
+  implied pointers may be replicated in order to allow both types to be used
+  (e.g., by providing a GOT and a captable).
 \end{description}
 
 \section{\uucap{} qualifier}
 
-To implement a pointer as a capability in \hybridCOrCpp{}, the qualifier
-\uucap{} is used on a pointer type.
-Unqualified language-visible pointers will not be implemented as capabilities.
-Some implied pointers in the language runtime, such as those implementing
-global variables, are also be implemented as capabilities, in order that
-capability pointers taken to those objects have the desired capability
-properties (such as bounds).
-Integer pointers will continue to use integer variants of those pointers in
-the language runtime, without perturbing source code or Application Binary
-Interface (ABI).
+To implement an explicit pointer as a capability in \hybridCOrCpp{}, the
+qualifier \uucap{} is used on a pointer type.
+Unqualified explicit pointers will be implemented as integer pointers.
+
+\section{Pointers within generated code and the language runtime}
+
+Wherever the ABI dictates that implied pointers must be integer pointers, that
+will be maintained by \hybridCOrCpp{} code generation and in the language
+runtime.
+For example, the hybrid ABI requires that the stack pointer be an integer
+pointer.
+
+In some cases, implied pointers may be implemented as capability pointers
+without impacting the ABI.
+{\color{blue} For example, hybrid code could use a capability return address
+rather than an integer return address to provide pointer provenance validity
+for the return address, even if not tight bounds, as the return address is not
+part of the ABI to other functions.}
+
+In other cases, implied pointers may be replicated, with a full set of integer
+pointer variants provided for the existing ABI, but additional capability
+pointer variants provided for hybrid code.
+{\color{blue} For example, a separate captable could be provided, replicating
+the set of entries in the existing GOT, to allow capability pointers taken to
+global variables to have desired bounds and permissions.}
+{\color{red} In the Morello ABI, capability pointers taken to globals pick up
+bounds and other metadata from a second independent table.}
 
 \subsection{Limitations}
 
@@ -415,9 +454,16 @@ programming environments; for example:
 
 \end{description}
 
-\subsection{Origins of bounds and permissions on pointers}
+\subsection{Origins of bounds and permissions}
+
+Pointers implemented by capabilities by definition carry capability metadata:
+tag, bounds, permissions, and so on.
+
+
+
 
 \section{Casts between integer and capability pointers}
+
 
 \rwnote{DDC}
 
