@@ -377,7 +377,8 @@ pointer variants provided for hybrid code.
 the set of entries in the existing GOT, to allow capability pointers taken to
 global variables to have desired bounds and permissions.}
 {\color{red} In the Morello ABI, capability pointers taken to globals pick up
-bounds and other metadata from a second independent table.}
+bounds and other metadata from constant pools of capabilities, effectively
+small per-function captables manually created by the compiler.}
 
 \subsection{Limitations}
 
