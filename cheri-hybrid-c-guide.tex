@@ -298,24 +298,23 @@ temporal memory protection for C/\cpp{}.
 We are concerned with pointers arising from two parts of the C implementation:
 
 \begin{description}
-\item[Explicit pointers] are pointers visible in the program source such as
-  declared pointers taken to local, global, or thread-local variables, to
-  functions, or pointers to returned heap allocations.
-  These pointers will be implemented using capabilities only if specifically
-  annotated.
+\item[Explicit pointers] are pointers visible in the program source.
+  These include declared pointers taken to local, global, or thread-local
+  variables, to functions, or pointers to returned heap allocations.
+  In \hybridCOrCpp{}, these pointers will be implemented using capabilities
+  only if specifically annotated.
 
 \item[Implied pointers] are those used by the language runtime and generated
-  code to manage the language implementation itself such as the stack pointer,
-  program counter and return addresses, PLT entries, vtable pointers, and
-  GOT/captable pointers.
-  These pointers will be implemented using integers, although in some cases
-  underlying data structures will be replicated to provide capability versions
-  of them.
+  code to manage the language implementation itself.
+  This includes the stack pointer, program counter and return addresses, PLT
+  entries, vtable pointers, and GOT/captable pointers.
+  In \hybridCOrCpp{}, these pointers will be implemented using integers,
+  although in some cases underlying data structures will be replicated to
+  provide capability versions of them -- e.g., of the GOT.
 \end{description}
 
 \noindent
-Pointers may be implemented using one of two underlaying architectural types
-in generated code:
+Pointers may be implemented using two underlaying architectural types:
 
 \begin{description}
 \item[Integer pointers] are pointers implemented as integers.
