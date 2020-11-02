@@ -99,6 +99,7 @@
 \newcommand{\cintt}{{\ccode{int}}\xspace}
 \newcommand{\cintttt}{{\ccode{int32\_t}}\xspace}
 \newcommand{\cintsft}{{\ccode{int64\_t}}\xspace}
+\newcommand{\cintcapt}{{\ccode{intcap\_t}}\xspace}
 
 \newcommand{\uucap}{{\ccode{\_\_capability}}\xspace}
 
@@ -436,145 +437,17 @@ We consider three cases:
   effectively small per-function captables manually created by the compiler.}
 \end{description}
 
-\section{\& address-of operator}
-
-The \ccode{\&} operator takes the address of a C or \cpp{} variable, and
-returns a pointer of a corresponding type.
-We consider three approaches:
-
-\begin{description}
-\item[Integer pointer interpretation] is the approach taken by CHERI
-  Clang/LLVM.
-  In this approach, \ccode{\&} returns an integer pointer type, the default
-  pointer type in \hybridCOrCpp{}.
-  If then assigned to a capability pointer, the resulting bounds and
-  permissions are derived from the Default Data Capability (DDC).
-
-\item[Polymorphic \ccode{\&}] \morellovariant{is the approach taken by Morello
-  Clang/LLVM.
-  In this approach, \ccode{\&} is polymorphic: if assigned to a capability
-  pointer, the resulting bounds and permissions are those of the underlying
-  type.}
-  \rwnote{Or are they of the underlying storage?}
-
-\item[Qualified \ccode{\&}]
-  \futurevariant{This approach would qualify or modify the \ccode{\&} operator
-  itself, perhaps in the form \ccode{\_\_capability \&}.
-  This approach would avoid polymorphic behavior with the effect of the
-  \ccode{\&} operator having different behavior based on otherts of a complex
-  expression, or drawn from the type of the left-hand side of an assignment.
-  Currently, no similar constructs to qualify or modify operators exist the C
-  language.}
-\end{description}
-
-Another potential approach, avoided in our work to date, is to support a
-silent downcast from a capability-pointer typed \ccode{\&} operator.
-In general, we feel strongly that casts from capability-pointer types to
-integer-pointer types should generate warnings (or even errors) due to the
-potential for lost protection information and confusing outcomes.
-In large existing corpora of \hybridCOrCpp{} code, large numbers of warnings
-would be produced, and likely substantially distract from the goal of
-producing safe code.
-
-Regardless of the approach taken, it is important that the compiler warn if
-there is a moderate likelihood that an assignment into a capability pointer
-might contain default or too-broad bounds compared to the expectation of the
-programmer.
-Here, both the current CHERI Clang/LLVM and potential future CHERI Clang/LLVM
-approaches require explicit warnings be generated, whereas the Morello
-approach should avoid surprise at the cost of potentially problematic C
-behavior.
-
-\section{Limitations}
-
-This is a relatively weak integration of CHERI support with the language and
-run-time environment offering limited memory protection only in very specific
-circumstances.
-Except where Application Programming Interfaces (APIs) have been extended to
-support explicit capability arguments or return values, pointers will not
-be protected by capability integrity, pointer provenance validity, bounds,
-permissions, or monotonicity.
-For example, \cfunc{malloc} will not return pointers as capabilities with
-bounds set, and also may not align or pad allocations such that they can be
-bounded imprecisely without loss of spatial protection relative to adjacent
-allocations.
-Further, the control-flow and other data structures used by C and the C
-runtime themselves do not use capabilities, and so some of the resilience to
-exploitation found in \purecapCOrCpp{}, such as return addresses and stack
-pointers implemented using capabilities, are not found in \hybridCOrCpp{}.
-Specific limitations by protection type are:
-
-\subsubsection{Incomplete referential, spatial, and temporal safety}
-
-\begin{itemize}
-\item Integer pointers, returned by various memory allocators by default, do
-  not implement capability protections including tag, bounds, and permissions.
-  As a result, integer pointers suffer from a lack of provenance validity and
-  spatial safety.
-
-\item Whenever a capability pointer type is cast to an integer pointer type,
-  its capability metadata, including tag, bounds, and permissions, are lost.
-  The resulting integer pointer will be dereferenced relative to the Default
-  Data Capability (DDC), and uses those bounds and permissions, which may be
-  substantial, and provenance validity is not implemented.
-
-\item Whenever an integer pointer type is cast to a capability pointer type,
-  the compiler will derive the new capability from DDC without refining its
-  bounds or permissions, offering provenance validity but not privilege
-  minimization.
-
-\item Both explicit function pointers and implied pointers such as return
-  addresses and PLT entries are implemented as integer pointers, and therefore
-  lack provenance validity, bounds, and permissions.
-
-\item Other data structures implemented by the language runtime and compiler,
-  such as the stack, are also implemented using integer pointers that do not
-  implement provenance validity, bounds, or permissions.
-
-\item CHERI temporal safety relies on capability implementation of pointers,
-  so that the tag, bounds, and permissions can be utilized to detect stale
-  pointers to quarantined memory.
-  As many pointers in a hybrid program are implemented using integers,
-  temporal safety is unable to precisely find all pointers or arrange for
-  their suitably atomic replacement.
-\end{itemize}
-
-As a result of these limitations, privilege minimization in the language
-runtime, control-flow mechanisms, and user data types is largely unimplementd.
-Protections are only refined and enforced for programmer-selected types, which
-can offer substantial value in specific scenarios, but is not a source of
-general robustness for the C and C++ implementations.
-All privilege reductions are programmer-implemented through explicit calls to
-narrow bounds and permissions.
-
-\subsection{Use cases}
-
-Despite these limitations, \hybridCOrCpp{} is an invaluable tool in specific
-programming environments; for example:
-
-\begin{description}
-\item[Hybrid CheriBSD kernel]
-  The \hybridCOrCpp{} compiled CheriBSD kernel is almost entirely
-  conventional C/\cpp{} implemented using integer pointers, except for its
-  handling of system-call arguments and capability state, which is manually
-  annotated.
-
-\item{Co-process IPC libraries in hybrid processes}
-
-\item XXX More?
-
-\end{description}
-
-\subsection{Origins of bounds and permissions}
-
-Pointers implemented by capabilities by definition carry capability metadata:
-tag, bounds, permissions, and so on.
-
-
-
-
 \section{Casts between integer and capability pointers}
 
+\rwnote{This section onwards a work in progress.}
+
+Casts from integer pointers to capability pointers will silently \rwnote{is
+this still true?} generate a capability pointer value derived from the
+Default Data Capability (DDC).
+
+Casts from capability pointers to integer pointers will take on a value that
+is the integer difference between the address of the capability pointer and
+the address of DDC.
 
 \rwnote{DDC}
 
@@ -686,6 +559,205 @@ This ensures that provenance is maintained.
   compilers.  Ideally, the latter would be preferable to requiring
   programmers to understand things are possibly beyond their so-called
   experience.}
+
+\section{intptr\_t}
+
+\cintptrt{} is an integer type able to hold a \cvoidstar{} pointer.
+In \purecapCOrCpp{}, \cintptrt{} is implemented using the \cintcapt{}
+type, which has sufficient size and alignment to hold a capability.
+In \hybridCOrCpp{}, \cintptrt{} is the native integer pointer type for the
+architecture (often a \clongt{}), and by definition too small (and may be
+insufficiently aligned) to hold a capability.
+\hybridCOrCpp{} provides a suitable \cintcapt{}, but this will be used only
+by code aware of the hybrid programming model.
+
+In general, capability-unaware code will execute unchanged, but
+capability-ware code may be limited in how it can utilize capability pointers.
+For example, existing APIs using \cintptrt{} will not be able to accept or
+return capability pointers, only integer pointers, which may be problematic
+for some code bases -- e.g., those using \cintptrt{} to hold opaque handles
+passed to function callback in asynchronous programming models.
+Another example might be language runtimes that assume that \cintptrt{} is
+suitable storage for both integers and all pointers -- they will operate fine,
+but converting to using capabilities may be a substantial effort.
+
+\section{\& operator}
+
+The \ccode{\&} operator takes the address of a C or \cpp{} variable, and
+returns a pointer of a corresponding type.
+We consider three approaches:
+
+\begin{description}
+\item[Integer pointer interpretation] is the approach taken by CHERI
+  Clang/LLVM.
+  In this approach, \ccode{\&} returns an integer pointer type, the default
+  pointer type in \hybridCOrCpp{}.
+  If then assigned to a capability pointer, the resulting bounds and
+  permissions are derived from the Default Data Capability (DDC).
+
+\item[Polymorphic \ccode{\&}] \morellovariant{is the approach taken by Morello
+  Clang/LLVM.
+  In this approach, \ccode{\&} is polymorphic: if assigned to a capability
+  pointer, the resulting bounds and permissions are those of the underlying
+  type.}
+  \rwnote{Or are they of the underlying storage?}
+
+\item[Qualified \ccode{\&}]
+  \futurevariant{This approach would qualify or modify the \ccode{\&} operator
+  itself, perhaps in the form \ccode{\_\_capability \&}.
+  This approach would avoid polymorphic behavior with the effect of the
+  \ccode{\&} operator having different behavior based on otherts of a complex
+  expression, or drawn from the type of the left-hand side of an assignment.
+  Currently, no similar constructs to qualify or modify operators exist the C
+  language.}
+\end{description}
+
+Another potential approach, avoided in our work to date, is to support a
+silent downcast from a capability-pointer typed \ccode{\&} operator.
+In general, we feel strongly that casts from capability-pointer types to
+integer-pointer types should generate warnings (or even errors) due to the
+potential for lost protection information and confusing outcomes.
+In large existing corpora of \hybridCOrCpp{} code, large numbers of warnings
+would be produced, and likely substantially distract from the goal of
+producing safe code.
+
+Regardless of the approach taken, it is important that the compiler warn if
+there is a moderate likelihood that an assignment into a capability pointer
+might contain default or too-broad bounds compared to the expectation of the
+programmer.
+Here, both the current CHERI Clang/LLVM and potential future CHERI Clang/LLVM
+approaches require explicit warnings be generated, whereas the Morello
+approach should avoid surprise at the cost of potentially problematic C
+behavior.
+
+\section{Limitations}
+
+We consider two general sources of limitations, which are inevitably
+intertwined:
+
+\begin{itemize}
+\item An uncomfortable programming model requiring manual annotation of
+  source code
+\item Incomplete referential, spatial, and temporal safety
+\end{itemize}
+
+\subsection{Programming model}
+
+The \hybridCOrCpp{} programming model is a challenging one requiring
+considerable care.
+In general, it is our recommendation that the function of \hybridCOrCpp{} is
+not improved memory safety, but rather interoperability with more
+capability-centered \purecapCOrCpp{} across a fairly hard ABI boundary.
+For example, the hybrid CheriBSD kernel variant implements its CheriABI
+system-call layer in \hybridCOrCpp{} so that it can interact with capabilities
+going to and from pure-capability user processes -- while itself primarily
+relying on integer pointers internally.
+
+In C code written to employ \ccode{typedef}s for pointer types, the level
+of disruption associated with \uucap{} may not be enormous.
+However, the useful setting of bounds is key.
+In the use cases we imagine, such as kernel ABI interfaces and IPC libraries,
+capabilities are used only in situtations in which suitable bounds and
+permissions are natural products of the code implementing those services.
+For example, if capabilities refer to a shared IPC memory object outside the
+DDC-addressable memory of \hybridCOrCpp{} code, then the IPC library has
+gained access to that capability from the party that allocated it in a
+capability-aware way.
+Similarly, hybrid kernels exchanging capabilities with user code will ensure
+that suitable bounds are set of capabilities transmitted to userlevel, and
+they will also return to the kernel with those bounds (or narrower ones)
+intact.
+
+Were more general-purpose programming the aim, a set of extended
+capability-aware APIs (e.g., \ccode{malloc\_c()}, \ccode{mmap\_c()}, and so
+on), returning and managing capability properties explicitly through
+\uucap{}-extended types, would be required.
+
+\subsection{Incomplete referential, spatial, and temporal safety}
+
+This is a relatively weak integration of CHERI support with the language and
+run-time environment offering limited memory protection only in very specific
+circumstances.
+Except where Application Programming Interfaces (APIs) have been extended to
+support explicit capability arguments or return values, pointers will not
+be protected by capability integrity, pointer provenance validity, bounds,
+permissions, or monotonicity.
+For example, \cfunc{malloc} will not return pointers as capabilities with
+bounds set, and also may not align or pad allocations such that they can be
+bounded imprecisely without loss of spatial protection relative to adjacent
+allocations.
+Further, the control-flow and other data structures used by C and the C
+runtime themselves do not use capabilities, and so some of the resilience to
+exploitation found in \purecapCOrCpp{}, such as return addresses and stack
+pointers implemented using capabilities, are not found in \hybridCOrCpp{}.
+Specific limitations by protection type are:
+
+\begin{itemize}
+\item Integer pointers, returned by various memory allocators by default, do
+  not implement capability protections including tag, bounds, and permissions.
+  As a result, integer pointers suffer from a lack of provenance validity and
+  spatial safety.
+
+\item Whenever a capability pointer type is cast to an integer pointer type,
+  its capability metadata, including tag, bounds, and permissions, are lost.
+  The resulting integer pointer will be dereferenced relative to the Default
+  Data Capability (DDC), and uses those bounds and permissions, which may be
+  substantial, and provenance validity is not implemented.
+
+\item Whenever an integer pointer type is cast to a capability pointer type,
+  the compiler will derive the new capability from DDC without refining its
+  bounds or permissions, offering provenance validity but not privilege
+  minimization.
+
+\item Both explicit function pointers and implied pointers such as return
+  addresses and PLT entries are implemented as integer pointers, and therefore
+  lack provenance validity, bounds, and permissions.
+
+\item Other data structures implemented by the language runtime and compiler,
+  such as the stack, are also implemented using integer pointers that do not
+  implement provenance validity, bounds, or permissions.
+
+\item CHERI temporal safety relies on capability implementation of pointers,
+  so that the tag, bounds, and permissions can be utilized to detect stale
+  pointers to quarantined memory.
+  As many pointers in a hybrid program are implemented using integers,
+  temporal safety is unable to precisely find all pointers or arrange for
+  their suitably atomic replacement.
+\end{itemize}
+
+As a result of these limitations, privilege minimization in the language
+runtime, control-flow mechanisms, and user data types is largely unimplementd.
+Protections are only refined and enforced for programmer-selected types, which
+can offer substantial value in specific scenarios, but is not a source of
+general robustness for the C and C++ implementations.
+All privilege reductions are programmer-implemented through explicit calls to
+narrow bounds and permissions.
+
+\section{Use cases}
+
+Despite these limitations, \hybridCOrCpp{} is an invaluable tool in specific
+programming environments; for example:
+
+\begin{description}
+\item[Hybrid CheriBSD kernel]
+  The \hybridCOrCpp{} compiled CheriBSD kernel is almost entirely
+  conventional C/\cpp{} implemented using integer pointers, except for its
+  handling of system-call arguments and capability state, which is manually
+  annotated.
+
+\item{Co-process IPC libraries in hybrid processes}
+
+\item XXX More?
+
+\end{description}
+
+\subsection{Origins of bounds and permissions}
+
+Pointers implemented by capabilities by definition carry capability metadata:
+tag, bounds, permissions, and so on.
+
+
+
 
 \section{The CHERI hybrid process environment}
 
