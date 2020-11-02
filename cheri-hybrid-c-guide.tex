@@ -254,7 +254,21 @@ The report \textit{Introduction to CHERI} technical
 report~\cite{UCAM-CL-TR-941} will also provide background material for this
 guide.
 
-\section{Status of this document}
+\subsection{Document structure}
+
+This report describes:
+
+\begin{itemize}
+\item The objectives and potential use cases for \CHERIhybridCOrCpp{};
+\item How \hybridCOrCpp{} interacts with explicit pointers in program source
+  code, as well as implied pointers in the language runtime;
+\item The impact on C-language types, casts and the address-of operator
+  (\ccode{\&});
+\item A number of inherent and practical implications to \hybridCOrCpp{}; and
+\item Further reading relating to CHERI and C/C++ on CHERI.
+\end{itemize}
+
+\subsection{Status of this document}
 
 This document is a request for comments and feedback, and not a stable
 specification.
@@ -298,6 +312,28 @@ annotated pointers to be implemented using capabilities.
 This is in contrast to \purecapCOrCpp{}, which implements all pointers as
 capabilities by default, and whose aim is strong referential, spatial, and
 temporal memory protection for C/\cpp{}.
+
+\subsection{Use cases}
+
+Despite these limitations, \hybridCOrCpp{} is an invaluable tool in specific
+programming environments.
+
+\rwnote{More here}
+
+\subsubsection{Hybrid CheriBSD kernel}
+
+The \hybridCOrCpp{} compiled CheriBSD kernel is almost entirely conventional
+C/\cpp{} implemented using integer pointers, except for its handling of
+system-call arguments and capability state, which is manually annotated.
+
+\subsubsection{The CHERI hybrid process environment}
+
+\rwnote{More here}
+
+\subsubsection{Co-process IPC libraries in hybrid processes}
+
+\rwnote{More here}
+
 
 \section{Categories and types of pointers}
 
@@ -349,7 +385,7 @@ Pointers may be implemented using two underlaying architectural types:
   (e.g., by providing a GOT and a captable).
 \end{description}
 
-\section{Explicit pointers}
+\subsection{Explicit pointers}
 
 Explicit pointers can be implemented as capability pointers in several ways:
 
@@ -391,7 +427,7 @@ Explicit pointers can be implemented as capability pointers in several ways:
   I seem to recall that we also have a pragma for managing the default
   interpretation to be used in header files shared between interpretations...}
 
-\section{Implied pointers}
+\subsection{Implied pointers}
 
 We consider three cases:
 
@@ -437,26 +473,8 @@ We consider three cases:
   effectively small per-function captables manually created by the compiler.}
 \end{description}
 
-\section{Casts between integer and capability pointers}
-
-\rwnote{This section onwards a work in progress.}
-
-Casts from integer pointers to capability pointers will silently \rwnote{is
-this still true?} generate a capability pointer value derived from the
-Default Data Capability (DDC).
-
-Casts from capability pointers to integer pointers will take on a value that
-is the integer difference between the address of the capability pointer and
-the address of DDC.
-
-\rwnote{DDC}
-
-\subsection{Casts from integer to capability pointers}
-
-\subsection{Casts from capability to integer pointers}
-
-\section{Recommended use of C-language types}
-\label{sec:recommended-c-types}
+\section{C-language types}
+\label{sec:c-language-types}
 
 \rwnote{This needs updating for hybrid use.}
 
@@ -560,7 +578,7 @@ This ensures that provenance is maintained.
   programmers to understand things are possibly beyond their so-called
   experience.}
 
-\section{intptr\_t}
+\subsection{intptr\_t}
 
 \cintptrt{} is an integer type able to hold a \cvoidstar{} pointer.
 In \purecapCOrCpp{}, \cintptrt{} is implemented using the \cintcapt{}
@@ -580,6 +598,24 @@ passed to function callback in asynchronous programming models.
 Another example might be language runtimes that assume that \cintptrt{} is
 suitable storage for both integers and all pointers -- they will operate fine,
 but converting to using capabilities may be a substantial effort.
+
+\section{Casts between integer and capability pointers}
+
+\rwnote{This section onwards a work in progress.}
+
+\subsection{Casts from integer to capability pointers}
+
+Casts from integer pointers to capability pointers will silently \rwnote{is
+this still true?} generate a capability pointer value derived from the
+Default Data Capability (DDC).
+
+\subsection{Casts from capability to integer pointers}
+
+Casts from capability pointers to integer pointers will take on a value that
+is the integer difference between the address of the capability pointer and
+the address of DDC.
+
+\rwnote{DDC}
 
 \section{\& operator}
 
@@ -733,24 +769,6 @@ general robustness for the C and C++ implementations.
 All privilege reductions are programmer-implemented through explicit calls to
 narrow bounds and permissions.
 
-\section{Use cases}
-
-Despite these limitations, \hybridCOrCpp{} is an invaluable tool in specific
-programming environments; for example:
-
-\begin{description}
-\item[Hybrid CheriBSD kernel]
-  The \hybridCOrCpp{} compiled CheriBSD kernel is almost entirely
-  conventional C/\cpp{} implemented using integer pointers, except for its
-  handling of system-call arguments and capability state, which is manually
-  annotated.
-
-\item{Co-process IPC libraries in hybrid processes}
-
-\item XXX More?
-
-\end{description}
-
 \subsection{Origins of bounds and permissions}
 
 Pointers implemented by capabilities by definition carry capability metadata:
@@ -758,8 +776,6 @@ tag, bounds, permissions, and so on.
 
 
 
-
-\section{The CHERI hybrid process environment}
 
 \section{Further reading}
 \label{sec:further_reading}
