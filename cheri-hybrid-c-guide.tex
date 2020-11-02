@@ -284,6 +284,8 @@ all use cases.
 Feedback on this draft may be submitted via pull requests or the issue tracker
 on our GitHub repository for the report:
 
+\smallskip
+
 \url{https://github.com/CTSRD-CHERI/cheri-hybrid-c-guide}
 
 \section{Objective of \hybridCOrCpp{}}
@@ -296,7 +298,7 @@ This is in contrast to \purecapCOrCpp{}, which implements all pointers as
 capabilities by default, and whose aim is strong referential, spatial, and
 temporal memory protection for C/\cpp{}.
 
-\section{Definitions}
+\section{Categories and types of pointers}
 
 We are concerned with pointers arising from two parts of the C implementation:
 
@@ -383,6 +385,11 @@ Explicit pointers can be implemented as capability pointers in several ways:
 \rwnote{Do we want a new item, ``Implied pointers that have a limited impact
   on ABI''?  E.g., to capture the CRA case?}
 
+\rwnote{Have we gotten too researchy here, and we should just stick to the
+  simple story that only those tagged with \uucap{} matter.
+  I seem to recall that we also have a pragma for managing the default
+  interpretation to be used in header files shared between interpretations...}
+
 \section{Implied pointers}
 
 We consider three cases:
@@ -431,8 +438,52 @@ We consider three cases:
 
 \section{\& address-of operator}
 
-\rwnote{TODO: whether it returns an integer pointer or is polymorphic.  If not
-  polymorphic, what we recommend.}
+The \ccode{\&} operator takes the address of a C or \cpp{} variable, and
+returns a pointer of a corresponding type.
+We consider three approaches:
+
+\begin{description}
+\item[Integer pointer interpretation] is the approach taken by CHERI
+  Clang/LLVM.
+  In this approach, \ccode{\&} returns an integer pointer type, the default
+  pointer type in \hybridCOrCpp{}.
+  If then assigned to a capability pointer, the resulting bounds and
+  permissions are derived from the Default Data Capability (DDC).
+
+\item[Polymorphic \ccode{\&}] \morellovariant{is the approach taken by Morello
+  Clang/LLVM.
+  In this approach, \ccode{\&} is polymorphic: if assigned to a capability
+  pointer, the resulting bounds and permissions are those of the underlying
+  type.}
+  \rwnote{Or are they of the underlying storage?}
+
+\item[Qualified \ccode{\&}]
+  \futurevariant{This approach would qualify or modify the \ccode{\&} operator
+  itself, perhaps in the form \ccode{\_\_capability \&}.
+  This approach would avoid polymorphic behavior with the effect of the
+  \ccode{\&} operator having different behavior based on otherts of a complex
+  expression, or drawn from the type of the left-hand side of an assignment.
+  Currently, no similar constructs to qualify or modify operators exist the C
+  language.}
+\end{description}
+
+Another potential approach, avoided in our work to date, is to support a
+silent downcast from a capability-pointer typed \ccode{\&} operator.
+In general, we feel strongly that casts from capability-pointer types to
+integer-pointer types should generate warnings (or even errors) due to the
+potential for lost protection information and confusing outcomes.
+In large existing corpora of \hybridCOrCpp{} code, large numbers of warnings
+would be produced, and likely substantially distract from the goal of
+producing safe code.
+
+Regardless of the approach taken, it is important that the compiler warn if
+there is a moderate likelihood that an assignment into a capability pointer
+might contain default or too-broad bounds compared to the expectation of the
+programmer.
+Here, both the current CHERI Clang/LLVM and potential future CHERI Clang/LLVM
+approaches require explicit warnings be generated, whereas the Morello
+approach should avoid surprise at the cost of potentially problematic C
+behavior.
 
 \section{Limitations}
 
