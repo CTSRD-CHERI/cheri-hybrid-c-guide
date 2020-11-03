@@ -313,7 +313,7 @@ This is in contrast to \purecapCOrCpp{}, which implements all pointers as
 capabilities by default, and whose aim is strong referential, spatial, and
 temporal memory protection for C/\cpp{}.
 
-\subsection{Use cases}
+\subsection{Current and potential use cases}
 
 Despite these limitations, \hybridCOrCpp{} is an invaluable tool in specific
 programming environments.
@@ -334,28 +334,12 @@ system-call arguments and capability state, which is manually annotated.
 
 \rwnote{More here}
 
+\subsubsection{Hybrid language runtimes}
 
-\section{Categories and types of pointers}
+\section{Pointer implementation}
 
-We are concerned with pointers arising from two parts of the C implementation:
+\subsection{Architectural implementations of pointers}
 
-\begin{description}
-\item[Explicit pointers] are pointers visible in the program source.
-  These include declared pointers taken to local, global, or thread-local
-  variables, to functions, or pointers to returned heap allocations.
-  In \hybridCOrCpp{}, these pointers will be implemented using capabilities
-  only if specifically annotated.
-
-\item[Implied pointers] are those used by the language runtime and generated
-  code to manage the language implementation itself.
-  This includes the stack pointer, program counter and return addresses, PLT
-  entries, vtable pointers, and GOT/captable pointers.
-  In \hybridCOrCpp{}, these pointers will be implemented using integers,
-  although in some cases underlying data structures will be replicated to
-  provide capability versions of them -- e.g., of the GOT.
-\end{description}
-
-\noindent
 Pointers may be implemented using two underlaying architectural types:
 
 \begin{description}
@@ -383,6 +367,26 @@ Pointers may be implemented using two underlaying architectural types:
   Implied pointers may be of this type if it does not harm the ABI; some
   implied pointers may be replicated in order to allow both types to be used
   (e.g., by providing a GOT and a captable).
+\end{description}
+
+\subsection{Pointers in source code, code generation, and the runtime}
+
+We are concerned with pointers arising from two parts of the C implementation:
+
+\begin{description}
+\item[Explicit pointers] are pointers visible in the program source.
+  These include declared pointers taken to local, global, or thread-local
+  variables, to functions, or pointers to returned heap allocations.
+  In \hybridCOrCpp{}, these pointers will be implemented using capabilities
+  only if specifically annotated.
+
+\item[Implied pointers] are those used by the language runtime and generated
+  code to manage the language implementation itself.
+  This includes the stack pointer, program counter and return addresses, PLT
+  entries, vtable pointers, and GOT/captable pointers.
+  In \hybridCOrCpp{}, these pointers will be implemented using integers,
+  although in some cases underlying data structures will be replicated to
+  provide capability versions of them -- e.g., of the GOT.
 \end{description}
 
 \subsection{Explicit pointers}
