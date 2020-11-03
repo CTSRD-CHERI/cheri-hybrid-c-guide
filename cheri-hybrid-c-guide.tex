@@ -130,9 +130,10 @@
 % NB: \nolinebreak was only made robust upstream on 2019-08-20
 \usepackage{relsize}
 \newcommand*{\cpp}{\texorpdfstring{C\textsmaller[2]{\protect\nolinebreak[4]\hspace{-.05em}\raisebox{.45ex}{\textbf{++}}}}{C++}}
-\newcommand*{\purecapCOrCpp}{CHERI C/\cpp{}}
-\newcommand*{\CHERIhybridCOrCpp}{CHERI Hybrid C/\cpp{}}
-\newcommand*{\hybridCOrCpp}{Hybrid C/\cpp{}}
+\newcommand*{\COrCpp}{C/\cpp{}}
+\newcommand*{\purecapCOrCpp}{CHERI \COrCpp{}}
+\newcommand*{\CHERIhybridCOrCpp}{CHERI Hybrid \COrCpp{}}
+\newcommand*{\hybridCOrCpp}{Hybrid \COrCpp{}}
 
 \hyphenation{Free-BSD}
 \hyphenation{Free-RTOS}
@@ -209,12 +210,27 @@ Potential future use cases include programs that have been formally verified
 have high dynamic pointer memory access patterns making wider pointer sizes
 unrealistic).
 
+\nwfnote{Is that really about the \emph{access} pattern or more the
+\emph{density} of pointers in memory?  I would imagine that people usually
+object to the increased footprint before they object to the increased DRAM
+traffic implied by moving larger pointers around?}
+
+\nwfnote{Do you want to call out partially adapted compartmentalized programs
+(possibly inclusive of programs with their own runtime systems; one could
+imagine enriching JS to have a ForeignCapability type, e.g.) as another
+possible example where being able to exchange capabilities might be useful
+despite possibly having a non-NULL DDC?}
+
 %Hybrid code is used in the CheriBSD kernel, and in the userspace run-time
 %environment for hybrid processes to enable communication with pure-capability
 %processes via co-process IPC.
 Because the benefits of referential, spatial, and temporal memory safety are
 unavailable to both the program and language runtime, care should be utilized,
 and its use should be avoided where not strictly necessary.
+
+\nwfnote{``its'' is not very clear (and might plausibly, syntactically, refer
+to ``care''); maybe ``\hybridCOrCpp{} should be used only where strictly
+necessary''?}
 }
 
 \newcommand{\reviewwarning}{
@@ -250,8 +266,8 @@ replicating its contents.
 Readers will benefit from having read that document prior to this one, as
 many behaviors in \hybridCOrCpp{} are based on those in \purecapCOrCpp{}, or
 will be contrasted with it in this guide.
-The report \textit{Introduction to CHERI} technical
-report~\cite{UCAM-CL-TR-941} will also provide background material for this
+The \textit{Introduction to CHERI} technical
+report~\cite{UCAM-CL-TR-941} also provides background material for this
 guide.
 
 \subsection{Document structure}
@@ -262,10 +278,10 @@ This report describes:
 \item The objectives and potential use cases for \CHERIhybridCOrCpp{};
 \item How \hybridCOrCpp{} interacts with explicit pointers in program source
   code, as well as implied pointers in the language runtime;
-\item The impact on C-language types, casts and the address-of operator
+\item The impact of \hybridCOrCpp{} on C-language types, casts and the address-of operator
   (\ccode{\&});
 \item A number of inherent and practical implications to \hybridCOrCpp{}; and
-\item Further reading relating to CHERI and C/C++ on CHERI.
+\item Further reading relating to CHERI and \COrCpp{} on CHERI.
 \end{itemize}
 
 \subsection{Status of this document}
@@ -319,9 +335,20 @@ of specific use cases.
 
 \subsection{Hybrid CheriBSD kernel}
 
-The \hybridCOrCpp{} compiled CheriBSD kernel is almost entirely conventional
-C/\cpp{} implemented using integer pointers, except for its handling of
+The \hybridCOrCpp{} compiled CheriBSD kernel is almost entirely implemented
+in conventional \COrCpp{} using integer pointers, except for its handling of
 system-call arguments and capability state, which is manually annotated.
+
+\nwfnote{Maybe add something beginning ``The CheriBSD kernel provides an
+interesting case study in partial defenses still available to \hybridCOrCpp{}.
+Generated code at the system-call boundary converts user-provided integer
+pointers into capabilities which are then fed into the body of the kernel; the
+kernel's copyin/out primitives offered to the rest of the kernel require
+capabilities, ensuring that they target either converted user addresses or
+\emph{explicitly} constructed capabilities.  In combination with existing
+technologies such as SMAP \cite{...}, this use of capabilities even in
+otherwise traditional C raises the bar against attack vectors which use the
+kernel as a confused deputy.''}
 
 \subsection{The CHERI hybrid process environment}
 
@@ -419,6 +446,8 @@ Explicit pointers can be implemented as capability pointers in several ways:
   Further research is required to evaluate the viability and usefulness of
   this potential approach.}
 \end{description}
+
+\nwfnote{Is that ``policy-constrained'' or ``policy-contained'' or something else?}
 
 \rwnote{Do we want a new item, ``Implied pointers that have a limited impact
   on ABI''?  E.g., to capture the CRA case?}
@@ -587,11 +616,12 @@ type, which has sufficient size and alignment to hold a capability.
 In \hybridCOrCpp{}, \cintptrt{} is the native integer pointer type for the
 architecture (often a \clongt{}), and by definition too small (and may be
 insufficiently aligned) to hold a capability.
-\hybridCOrCpp{} provides a suitable \cintcapt{}, but this will be used only
+\hybridCOrCpp{} continues to provide a suitable \cintcapt{} (i.e., one that
+can hold a capability), but this will be used only
 by code aware of the hybrid programming model.
 
 In general, capability-unaware code will execute unchanged, but
-capability-ware code may be limited in how it can utilize capability pointers.
+capability-aware code may be limited in how it can utilize capability pointers.
 For example, existing APIs using \cintptrt{} will not be able to accept or
 return capability pointers, only integer pointers, which may be problematic
 for some code bases -- e.g., those using \cintptrt{} to hold opaque handles
@@ -609,6 +639,8 @@ but converting to using capabilities may be a substantial effort.
 Casts from integer pointers to capability pointers will silently \rwnote{is
 this still true?} generate a capability pointer value derived from the
 Default Data Capability (DDC).
+
+\nwfnote{Recommend \ccode{cheri\_address\_set}?}
 
 \subsection{Casts from capability to integer pointers}
 
@@ -631,6 +663,12 @@ We consider three approaches:
   pointer type in \hybridCOrCpp{}.
   If then assigned to a capability pointer, the resulting bounds and
   permissions are derived from the Default Data Capability (DDC).
+
+\nwfnote{Does that mean that I can't write something like...  \ccode{struct \{
+int x; int y; \} * \_\_capability sp; int * \_\_capability xp = \&sp->x;} and
+have it work unless \ccode{sp} is a subset of DDC?  I'd sort of expect \& to be
+polymorphic in its argument, even if it isn't polymorphic in its return type as
+given next.}
 
 \item[Polymorphic \ccode{\&}] \morellovariant{is the approach taken by Morello
   Clang/LLVM.
@@ -730,7 +768,7 @@ pointers implemented using capabilities, are not found in \hybridCOrCpp{}.
 Specific limitations by protection type are:
 
 \begin{itemize}
-\item Integer pointers, returned by various memory allocators by default, do
+\item Integer pointers, including those returned by default by various memory allocators, do
   not implement capability protections including tag, bounds, and permissions.
   As a result, integer pointers suffer from a lack of provenance validity and
   spatial safety.
@@ -740,6 +778,8 @@ Specific limitations by protection type are:
   The resulting integer pointer will be dereferenced relative to the Default
   Data Capability (DDC), and uses those bounds and permissions, which may be
   substantial, and provenance validity is not implemented.
+
+  \nwfnote{Casts to integers of tag-clear capabilities trap or succeed?}
 
 \item Whenever an integer pointer type is cast to a capability pointer type,
   the compiler will derive the new capability from DDC without refining its
@@ -766,7 +806,7 @@ As a result of these limitations, privilege minimization in the language
 runtime, control-flow mechanisms, and user data types is largely unimplementd.
 Protections are only refined and enforced for programmer-selected types, which
 can offer substantial value in specific scenarios, but is not a source of
-general robustness for the C and C++ implementations.
+general robustness for the C and \cpp implementations.
 All privilege reductions are programmer-implemented through explicit calls to
 narrow bounds and permissions.
 
