@@ -303,7 +303,7 @@ on our GitHub repository for the report:
 
 \url{https://github.com/CTSRD-CHERI/cheri-hybrid-c-guide}
 
-\section{Objective of \hybridCOrCpp{}}
+\section{Objective and use cases for \hybridCOrCpp{}}
 
 \hybridCOrCpp{} aims to allow programs to be written to use conventional
 integer pointers throughout their implementations, and yet also to interact
@@ -312,29 +312,26 @@ annotated pointers to be implemented using capabilities.
 This is in contrast to \purecapCOrCpp{}, which implements all pointers as
 capabilities by default, and whose aim is strong referential, spatial, and
 temporal memory protection for C/\cpp{}.
+While \hybridCOrCpp{} is unable to provide strong referential, spatial, or
+temporal safety in most use cases, it allows conventional
+integer-pointer-based code to interact usefully with capabilities in a number
+of specific use cases.
 
-\subsection{Current and potential use cases}
-
-Despite these limitations, \hybridCOrCpp{} is an invaluable tool in specific
-programming environments.
-
-\rwnote{More here}
-
-\subsubsection{Hybrid CheriBSD kernel}
+\subsection{Hybrid CheriBSD kernel}
 
 The \hybridCOrCpp{} compiled CheriBSD kernel is almost entirely conventional
 C/\cpp{} implemented using integer pointers, except for its handling of
 system-call arguments and capability state, which is manually annotated.
 
-\subsubsection{The CHERI hybrid process environment}
+\subsection{The CHERI hybrid process environment}
 
 \rwnote{More here}
 
-\subsubsection{Co-process IPC libraries in hybrid processes}
+\subsection{Co-process IPC libraries in hybrid processes}
 
 \rwnote{More here}
 
-\subsubsection{Hybrid language runtimes}
+\subsection{Hybrid language runtimes}
 
 \section{Pointer implementation}
 
