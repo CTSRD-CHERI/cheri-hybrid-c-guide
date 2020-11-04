@@ -335,7 +335,16 @@ of specific use cases.
 
 \subsection{Hybrid CheriBSD kernel}
 
-The \hybridCOrCpp{} compiled CheriBSD kernel is almost entirely implemented
+CheriBSD implements two kernel variants: a \hybridCOrCpp{} compilation, and a
+\purecapCOrCpp{} variant.
+In the former, the aim is to support a CHERI-enabled userspace without
+substantive change to kernel-internal protection.
+In the latter, the aim is to also use CHERI memory protection within the
+kernel.
+Both kernel variants support hybrid and pure-capability (CheriABI) userspace
+process environments.
+
+The \hybridCOrCpp{}-compiled CheriBSD kernel is almost entirely implemented
 in conventional \COrCpp{} using integer pointers, except for its handling of
 system-call arguments and capability state, which is manually annotated.
 
