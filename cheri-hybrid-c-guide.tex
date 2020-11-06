@@ -347,19 +347,39 @@ process environments.
 The \hybridCOrCpp{}-compiled CheriBSD kernel is almost entirely implemented
 in conventional \COrCpp{} using integer pointers, except for its handling of
 system-call arguments and capability state, which is manually annotated.
+Capability pointers are used in the kernel for three reasons:
 
-\nwfnote{Maybe add something beginning ``The CheriBSD kernel provides an
-interesting case study in partial defenses still available to \hybridCOrCpp{}.
-Generated code at the system-call boundary converts user-provided integer
-pointers into capabilities which are then fed into the body of the kernel; the
-kernel's copyin/out primitives offered to the rest of the kernel require
-capabilities, ensuring that they target either converted user addresses or
-\emph{explicitly} constructed capabilities.  In combination with existing
-technologies such as SMAP \cite{...}, this use of capabilities even in
-otherwise traditional C raises the bar against attack vectors which use the
-kernel as a confused deputy.''}
+\begin{enumerate}
+\item To manage the dynamic state of capability-enabled kernel and user
+  threads as part of context management and exception handling;
 
-\subsection{The CHERI hybrid process environment}
+\item In the implementation of tag-enabled virtual-memory abstractions, such
+  as copy-on-write; and
+
+\item To handle pointer-type userspace system-call arguments as capabilities
+  rather than integer pointers, both to enable capability-based behaviors
+  (such as having opaque pointer types used in POSIX asynchronous I/O be able
+  to hold capabilities), and to prevent confused deputy attacks (such as might
+  occur if an omnipotent kernel ignored userspace-originated bounds on stack
+  or heap allocations).
+\end{enumerate}
+
+In order to unify system-call handling, user pointers originating in hybrid
+ABI processes are converted into capability pointers at the system-call
+boundary.
+This leads to coarse-grained bounds, but, for example, permit user pointers to
+be used only in accessing userspace memory.
+For pure-capability (CheriABI) processes, user pointer types originate as
+capabilities, and are simply propagated as necessary.
+
+\subsection{The CheriBSD hybrid process environment}
+
+In the usermode portion of the CheriBSD hybrid ABI process environment, some
+system libraries are extended with modest capability annotations to support
+capability use.
+For example, \ccode{memcpy()} and \ccode{sort()} must propagate tags rather
+than perform byte-wise copies, in order to preserve pointers embedded in data
+structures across memory copies.
 
 \rwnote{More here}
 
