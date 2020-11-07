@@ -337,8 +337,8 @@ of specific use cases.
 
 CheriBSD implements two kernel variants: a \hybridCOrCpp{} compilation, and a
 \purecapCOrCpp{} variant.
-In the former, the aim is to support a CHERI-enabled userspace without
-substantive change to kernel-internal protection.
+The \hybridCOrCpp{} compilation aims to support a CHERI-enabled userspace
+without substantive changes to kernel-internal protection.
 In the latter, the aim is to also use CHERI memory protection within the
 kernel.
 Both kernel variants support hybrid and pure-capability (CheriABI) userspace
@@ -346,7 +346,7 @@ process environments.
 
 The \hybridCOrCpp{}-compiled CheriBSD kernel is almost entirely implemented
 in conventional \COrCpp{} using integer pointers, except for its handling of
-system-call arguments and capability state, which is manually annotated.
+system-call arguments and capability state, which are manually annotated.
 Capability pointers are used in the kernel for three reasons:
 
 \begin{enumerate}
@@ -354,7 +354,7 @@ Capability pointers are used in the kernel for three reasons:
   threads as part of context management and exception handling;
 
 \item In the implementation of tag-enabled virtual-memory abstractions, such
-  as copy-on-write; and
+  as copy-on-write propagating tag bits; and
 
 \item To handle pointer-type userspace system-call arguments as capabilities
   rather than integer pointers, both to enable capability-based behaviors
@@ -371,6 +371,9 @@ This leads to coarse-grained bounds, but, for example, permit user pointers to
 be used only in accessing userspace memory.
 For pure-capability (CheriABI) processes, user pointer types originate as
 capabilities, and are simply propagated as necessary.
+This approach is moderately disruptive of the kernel source code: While there
+are few structural changes, user-originated pointers are manually annotated
+with \uucap{} throughout.
 
 \subsection{The CheriBSD hybrid process environment}
 
@@ -380,18 +383,54 @@ capability use.
 For example, \ccode{memcpy()} and \ccode{sort()} must propagate tags rather
 than perform byte-wise copies, in order to preserve pointers embedded in data
 structures across memory copies.
-
-\rwnote{More here}
+In general, support for capabilities is weak within the runtime: We have not
+updated \ccode{malloc()} to provide a \ccode{malloc\_c()} variant returning
+capabilities, implementing suitable capability alignment, or implementing
+temporal memory safety.
+System calls are also not generally extended to support capability arguments
+or return values, limiting the useful origins for capabilities other than as
+derived from the Default Data Capability (DDC) or Program Counter Capability
+(PCC).
 
 \subsection{Co-process IPC libraries in hybrid processes}
 
-\rwnote{More here}
+We have been developing a CHERI-based compartmentalization model called
+\textit{co-located processes} (or \textit{co-processes} for short).
+In this model, a set of UNIX processes are colocated within a single shared
+virtual address space, but kept separate by virtue of CHERI capabilities:
+processes only ever receive capabilities to their own individual mappings.
+
+Co-process Inter-Process Communication (IPC) relies on bridging those
+processes by allowing a limited set of capabilities to be shared between those
+processes.
+In this approach, hybrid capability-extended IPC libraries would have access
+to the memory of remote processes using CHERI capabilities, but the majority
+of code in a hybrid process would not have that direct access.
+Depending on performance and compatibility objectives, knowledge of
+co-processes could be restricted to low-level IPC libraries, or be propagated
+higher in the IPC stack, reducing the need for memory copying.
+
+This is an area where our research is ongoing, but access to high-performance
+CHERI IPC with only limited recompilation and extension to existing software
+packages is a potentially promising area.
 
 \subsection{Hybrid language runtimes}
 
-\section{Pointer implementation}
+Managed language runtimes are a point of particular performance concern with
+CHERI, as they often have a high density of pointers in their dynamic memory
+access patterns.
+This makes them potentially more sensitive to CHERI's pointer-size growth in
+pure-capability compilation.
+On the other hand, CHERI capabilities offer the opportunity to improve
+robustness and performance by allowing selective use of capabilities to
+protect key types and provide hardware assistance for bounds checking.
+On the whole, our recommendation has been to consider compiling language
+runtimes as pure-capability code making selective use of integer pointers
+(e.g., into language-specific heaps reached via capabilities), but
+another approach would be to compile them as hybrid code making selective use
+of capabilities -- e.g., when accessing bounded arrays in the heap.
 
-\subsection{Architectural implementations of pointers}
+\section{Pointer implementation}
 
 Pointers may be implemented using two underlaying architectural types:
 
@@ -421,6 +460,9 @@ Pointers may be implemented using two underlaying architectural types:
   implied pointers may be replicated in order to allow both types to be used
   (e.g., by providing a GOT and a captable).
 \end{description}
+
+In the following sections, we consider the implementation of pointers in
+C/\cpp{} source code and also the language runtime.
 
 \subsection{Pointers in source code, code generation, and the runtime}
 
