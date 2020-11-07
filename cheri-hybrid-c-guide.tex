@@ -575,131 +575,16 @@ We consider three cases:
 \end{description}
 
 \section{C-language types}
-\label{sec:c-language-types}
 
-\rwnote{This needs updating for hybrid use.}
-
-As confusion frequently arises about the most appropriate types to use for
-integers, pointers, and pointer-related values, we make the following
-recommendations:
-
-\begin{description}
-\item[\cintt, \cintttt, \clongt, \cintsft,
-  \ldots{}] These pure integer types should be used to hold integer values
-  that will never be cast to a pointer type without first combining them with
-  another pointer value -- e.g., by using them as an array offset.
-  Most integers in a C/\cpp{}-language program will be of these types.
-
-\item[\ptraddrt] This is a new integer type introduced by CHERI C and should be used to hold
-  addresses.
-  \ptraddrt should not be directly cast to a pointer type for
-  dereference; instead, it must be combined with an existing valid capability
-  to the address space to generate a dereferenceable pointer.
-  Typically, this is done using the \ccode{cheri\_address\_set(c, x)} function.
-
-\item[\sizet, \ssizet] These integer types should be used
-  to hold the unsigned or signed lengths of regions of address space.
-  \arnote{\sizet not necessary the same as unsigned \ptrdifft.}
-
-\item[\ptrdifft] This integer type describes the difference of indices
-  between two pointers to elements of the same array, and should not be used for
-any other purpose.
-  It can be added to a pointer to obtain a new pointer, but the result will
-  be dereferenceable only if the address lies within the bounds of the
-  pointer from which it was derived.
-
-  \note{Isn't that last sentence true of any combination?}{nwf}
-
-  Less standards-compliant code sometimes uses \ptrdifft when the
-  programmer more likely meant \cintptrt or (less commonly)
-  \sizet.
-  When porting code, it is worthwhile to audit use of \ptrdifft.
-
-  \note{Should we recommend that \sizet be used to hold lengths of
-  allocations and \ptrdifft be used to talk about spans of
-  address space (e.g., the offsets between two subobjects of an allocation)?  I feel
-  like the recommendations here are not as concrete as I'd like.}{nwf}
-
-\item[\cintptrt, \cuintptrt] These integer types should be
-  used to hold values that may be valid pointers if cast back to a pointer
-  type.
-  When an \cintptrt is assigned an integer value -- e.g., due to
-  constant initialization to an integer in the source -- and the result is
-  cast to a pointer type, the pointer will be invalid and hence
-  non-dereferenceable.
-  These types will be used in two cases: (1) Where there is uncertainty as to
-  whether the value to be held will be an integer or a pointer -- e.g., for an
-  opaque argument to a callback function; or (2) Where it is more convenient
-  to place a pointer value in an integer type for the purposes of arithmetic
-  (which takes place on the capability's address and in units of bytes, as if
-  the pointer had been cast to \texttt{char *}).
-
-  The observable, integer range of a \cuintptrt is the same as
-  that of a \ptraddrt (or \ptrdifft for \cintptrt), despite the increased \emph{alignment} and \emph{storage} requirements.
-
-\item[\ccode{intmax\_t}, \ccode{uintmax\_t}] According to the C standard\arnote{7.20.1.5 Greatest-width integer types}, these integer types should be \enquote{capable of representing any value of any (unsigned) integer type}.
-  In \purecapCOrCpp{}, they are not provenance-carrying and can represent the integer \emph{range} of \cuintptrt/\cintptrt, but not the capability metadata or tag bit.
-  As the observable value of \cuintptrt/\cintptrt is the pointer address range, we believe this choice to be compatible with the C standard.
-
-  Additionally, due to ABI constraints, it would be extremely difficult to change the width of these types from 64 to 129 bits.
-  This is also true for other architectures such as x86: despite Clang and GCC supporting an \ccode{\_\_int128} type, \ccode{intmax\_t} remains 64 bits wide.
-
-  We generally do not recommend use of these types in \purecapCOrCpp{}.
-  However, the types may be useful in \cfunc{printf} calls (using the \ccode{\%j} format string width modifier) as the \pathname{inttypes.h} \ccode{PRI*} macros can be rather verbose.
-
-
-\item[\maxalignt] This type is defined in C as \enquote{an object type whose alignment is the greatest fundamental alignment} \arnote{C2x \S{}7.19.2} and this includes capability types for \purecapCOrCpp{}.
-% and in \cpp{} as a \enquote{type whose alignment requirement is at least as great as that of every scalar type}\arnote{C++17 \S{}21.2.4p5}
-We found that some custom allocators use \ccode{sizeof(long double)} or \ccode{sizeof(uint64\_t)} to align their return values.
-While this appears to work on most architectures, in \purecapCOrCpp{} this must be changed to \ccode{alignof(\maxalignt)}\kern-2pt.%
-%
-\footnote{%
-It is important to use \ccode{alignof} instead of \ccode{sizeof} since many
-common implementations, such as GCC and FreeBSD, define \maxalignt as a
-\ccode{struct} and not a \ccode{union}.}
-
-\item[\ccharstar, \ldots{}] These pointer types are suitable for
-  dereference, but in general \psnote{that ``in general'' makes me wonder about the exceptions?}
-  \arnote{The only exception I can think of is requiring \cvoidstar due to bad API design (callback parameters, etc).}  should not be cast to or from arbitrary integer
-  values.
-  Valid pointers are always derived from other valid pointers (including those cast to \cintptrt or \cuintptrt), and cannot be
-  constructed using arbitrary integer arithmetic.
-\end{description}
-
-It is important to note that \cuintptrt is no longer the same size as
-\sizet. This difference may require making some changes to
-existing code to use the correct type depending on whether the variable
-needs to be able store a pointer type. In cases where this is not obvious
-(such as for a callback argument), we recommend the use of \cuintptrt.
-This ensures that provenance is maintained.
-
-\pgnnote{The above section begs questions relating to what is the
-  responsibility of programmers and what can be aided or managed by
-  compilers.  Ideally, the latter would be preferable to requiring
-  programmers to understand things are possibly beyond their so-called
-  experience.}
-
-\subsection{intptr\_t}
-
-\cintptrt{} is an integer type able to hold a \cvoidstar{} pointer.
-In \purecapCOrCpp{}, \cintptrt{} is implemented using the \cintcapt{}
-type, which has sufficient size and alignment to hold a capability.
-In \hybridCOrCpp{}, \cintptrt{} is the native integer pointer type for the
-architecture (often a \clongt{}), and by definition too small (and may be
-insufficiently aligned) to hold a capability.
-\hybridCOrCpp{} continues to provide a suitable \cintcapt{} (i.e., one that
-can hold a capability), but this will be used only
-by code aware of the hybrid programming model.
-
-In general, capability-unaware code will execute unchanged, but
-capability-aware code may be limited in how it can utilize capability pointers.
-For example, existing APIs using \cintptrt{} will not be able to accept or
-return capability pointers, only integer pointers, which may be problematic
-for some code bases -- e.g., those using \cintptrt{} to hold opaque handles
-passed to function callback in asynchronous programming models.
-Another example might be language runtimes that assume that \cintptrt{} is
-suitable storage for both integers and all pointers -- they will operate fine,
-but converting to using capabilities may be a substantial effort.
+In \hybridCOrCpp{}, all existing language types retain their current uses in
+order to maximize compatibility, including \cintptrt, \cuintptrt, and
+\maxalignt.
+This is inconvenient with respect to capability pointer types, which cannot
+be stored (without a downcast to an integer pointer type, losing capability
+metadata) in \cintptrt.
+A new type, \cintcapt, has been introduced, which is able to hold capability
+pointer types -- but will be used only by source code that is capability
+aware.
 
 \section{Casts between integer and capability pointers}
 
@@ -710,6 +595,20 @@ but converting to using capabilities may be a substantial effort.
 Casts from integer pointers to capability pointers will silently \rwnote{is
 this still true?} generate a capability pointer value derived from the
 Default Data Capability (DDC).
+As a result, they will generally have highly permissive bounds and
+permissions, which should be refined for the capability to offer spatial,
+and not just referential, protection.
+
+For example, if an integer pointer to a heap allocation is to be exposed to
+co-process IPC using a capability, the code performing a cast to a capability
+pointer will typically also need to set bounds and permissions suitably.
+This use case may also require stronger alignment for the heap allocation than
+the existing heap allocator provides, as the allocator will be unaware of
+capability bounds precision requirements.
+
+Because of these risks, CHERI Clang/LLVM will always generate a warning in
+the absense of use of the new \ccode{\_\_cheri\_addr} qualifier on the target
+type of a cast.
 
 \nwfnote{Recommend \ccode{cheri\_address\_set}?}
 
@@ -718,8 +617,12 @@ Default Data Capability (DDC).
 Casts from capability pointers to integer pointers will take on a value that
 is the integer difference between the address of the capability pointer and
 the address of DDC.
+These casts likewise discard capability metadata, preventing not only spatial
+protection, but also referential protection.
 
-\rwnote{DDC}
+Because of these risks, CHERI Clang/LLVM will always generate an error in
+the absense of use of the new \ccode{\_\_cheri\_fromcap} qualifier on the
+target type of a cast.
 
 \section{\& operator}
 
