@@ -763,6 +763,8 @@ Specific limitations by protection type are:
 \item Both explicit function pointers and implied pointers such as return
   addresses and PLT entries are implemented as integer pointers, and therefore
   lack provenance validity, bounds, and permissions.
+  Explicit capability pointers will have greater protection, but only subject
+  to suitable setting of their metadata.
 
 \item Other data structures implemented by the language runtime and compiler,
   such as the stack, are also implemented using integer pointers that do not
@@ -788,9 +790,14 @@ narrow bounds and permissions.
 
 Pointers implemented by capabilities by definition carry capability metadata:
 tag, bounds, permissions, and so on.
-
-
-
+In general, the \hybridCOrCpp{} runtime has much more limited information to
+use as inputs for this metadata.
+Where the address-of operator is used with a capability modifier, linkage
+information (such as the captable) can be used as an origin of bounds for
+global variables, and the stack allocator itself can provide bounds for local
+variables.
+Heap allocation requires API extensions that are not currently present (see
+above).
 
 \section{Further reading}
 \label{sec:further_reading}
