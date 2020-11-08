@@ -591,8 +591,6 @@ aware.
 
 \section{Casts between integer and capability pointers}
 
-\rwnote{This section onwards a work in progress.}
-
 \subsection{Casts from integer to capability pointers}
 
 Casts from integer pointers to capability pointers will silently \rwnote{is
@@ -613,6 +611,8 @@ Because of these risks, CHERI Clang/LLVM will always generate a warning in
 the absense of use of the new \ccode{\_\_cheri\_addr} qualifier on the target
 type of a cast.
 
+\rwnote{Give examples of warnings?}
+
 \nwfnote{Recommend \ccode{cheri\_address\_set}?}
 
 \subsection{Casts from capability to integer pointers}
@@ -626,6 +626,10 @@ protection, but also referential protection.
 Because of these risks, CHERI Clang/LLVM will always generate an error in
 the absense of use of the new \ccode{\_\_cheri\_fromcap} qualifier on the
 target type of a cast.
+
+\rwnote{Say something about the associated built-ins?}
+
+\rwnote{Give examples of warnings?}
 
 \section{\& operator}
 
