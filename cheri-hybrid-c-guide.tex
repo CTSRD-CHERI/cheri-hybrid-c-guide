@@ -577,7 +577,9 @@ We consider three cases:
   effectively small per-function captables manually created by the compiler.}
 \end{description}
 
-\section{C-language types}
+\section{\hybridCOrCpp{}}
+
+\subsection{C-language types}
 
 In \hybridCOrCpp{}, all existing language types retain their current uses in
 order to maximize compatibility, including \cintptrt, \cuintptrt, and
@@ -588,8 +590,6 @@ metadata) in \cintptrt.
 A new type, \cintcapt, has been introduced, which is able to hold capability
 pointer types -- but will be used only by source code that is capability
 aware.
-
-\section{Casts between integer and capability pointers}
 
 \subsection{Casts from integer to capability pointers}
 
@@ -631,7 +631,7 @@ target type of a cast.
 
 \rwnote{Give examples of warnings?}
 
-\section{\& operator}
+\subsection{\& operator}
 
 The \ccode{\&} operator takes the address of a C or \cpp{} variable, and
 returns a pointer of a corresponding type.
