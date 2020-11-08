@@ -579,6 +579,15 @@ We consider three cases:
 
 \section{\hybridCOrCpp{}}
 
+The C and \cpp{} languages are generally unperturbed by the introduction of
+\hybridCOrCpp{} support, except where specifically impacted by the use or
+implementation of the capability pointer type.
+Capability pointers will generally follow the rules, alignment requirements,
+integer conversions, provenance, and so on laid out in the \textit{CHERI C/C++
+Programming Guide}~\cite{UCAM-CL-TR-947}.
+However, substantially different choices are made regarding integer types,
+integer-pointer casts, and addresses taken, as described in this section.
+
 \subsection{C-language types}
 
 In \hybridCOrCpp{}, all existing language types retain their current uses in
