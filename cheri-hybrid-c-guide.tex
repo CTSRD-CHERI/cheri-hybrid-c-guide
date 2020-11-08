@@ -326,7 +326,7 @@ on our GitHub repository for the report:
 
 The aim of \hybridCOrCpp{} is to allow programs to be written using
 conventional integer pointers throughout their implementations, and yet also
-to interact with capabilites via modest C-language extensions causing
+to interact with capabilities via modest C-language extensions causing
 specifically annotated pointers to be implemented using capabilities.
 This is in contrast to \purecapCOrCpp{}, which implements all pointers as
 capabilities by default, and whose aim is strong referential, spatial, and
@@ -510,7 +510,7 @@ Explicit pointers can be implemented as capability pointers in several ways:
   Further research is required to evaluate the viability and usefulness of
   this potential approach.}
 
-\item[Other pointers that have a policy-contrained ABI impact]
+\item[Other pointers that have a policy-constrained ABI impact]
   \futurevariant{There is also the opportunity to have a policy-determined
   impact on ABI, in which an explicit policy might allow compilation of
   larger portions of code in a manner that more substantively impacts ABI.
@@ -617,7 +617,7 @@ the existing heap allocator provides, as the allocator will be unaware of
 capability bounds precision requirements.
 
 Because of these risks, CHERI Clang/LLVM will always generate a warning in
-the absense of use of the new \ccode{\_\_cheri\_addr} qualifier on the target
+the absence of use of the new \ccode{\_\_cheri\_addr} qualifier on the target
 type of a cast.
 
 \rwnote{Give examples of warnings?}
@@ -633,7 +633,7 @@ These casts likewise discard capability metadata, preventing not only spatial
 protection, but also referential protection.
 
 Because of these risks, CHERI Clang/LLVM will always generate an error in
-the absense of use of the new \ccode{\_\_cheri\_fromcap} qualifier on the
+the absence of use of the new \ccode{\_\_cheri\_fromcap} qualifier on the
 target type of a cast.
 
 \rwnote{Say something about the associated built-ins?}
@@ -671,7 +671,7 @@ given next.}
   \futurevariant{This approach would qualify or modify the \ccode{\&} operator
   itself, perhaps in the form \ccode{\_\_capability \&}.
   This approach would avoid polymorphic behavior with the effect of the
-  \ccode{\&} operator having different behavior based on otherts of a complex
+  \ccode{\&} operator having different behavior based on others of a complex
   expression, or drawn from the type of the left-hand side of an assignment.
   Currently, no similar constructs to qualify or modify operators exist the C
   language.}
@@ -722,7 +722,7 @@ In C code written to employ \ccode{typedef}s for pointer types, the level
 of disruption associated with \uucap{} may not be enormous.
 However, the useful setting of bounds is key.
 In the use cases we imagine, such as kernel ABI interfaces and IPC libraries,
-capabilities are used only in situtations in which suitable bounds and
+capabilities are used only in situations in which suitable bounds and
 permissions are natural products of the code implementing those services.
 For example, if capabilities refer to a shared IPC memory object outside the
 DDC-addressable memory of \hybridCOrCpp{} code, then the IPC library has
@@ -795,7 +795,7 @@ Specific limitations by protection type are:
 \end{itemize}
 
 As a result of these limitations, privilege minimization in the language
-runtime, control-flow mechanisms, and user data types is largely unimplementd.
+runtime, control-flow mechanisms, and user data types is largely unimplemented.
 Protections are only refined and enforced for programmer-selected types, which
 can offer substantial value in specific scenarios, but is not a source of
 general robustness for the C and \cpp implementations.
@@ -892,7 +892,7 @@ The views, opinions, and/or findings contained in this report are those of the a
 This work was supported in part by the Innovate UK project Digital Security by
 Design (DSbD) Technology Platform Prototype, 105694.
 This project has received funding from the European Research Council
-(ERC) under the European Union’s Horizon 2020 research and innovation programme (grant agreement No 789108), ERC Advanced Grant ELVER.
+(ERC) under the European Union's Horizon 2020 research and innovation programme (grant agreement No 789108), ERC Advanced Grant ELVER.
 We also acknowledge the EPSRC REMS Programme Grant (EP/K008528/1), Arm Limited,
 HP Enterprise, and Google, Inc.
 Approved for Public Release, Distribution Unlimited.
