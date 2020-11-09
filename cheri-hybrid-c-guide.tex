@@ -765,6 +765,7 @@ int x; int y; \} * \_\_capability sp; int * \_\_capability xp = \&sp->x;} and
 have it work unless \ccode{sp} is a subset of DDC?  I'd sort of expect \& to be
 polymorphic in its argument, even if it isn't polymorphic in its return type as
 given next.}
+\bdnote{\&<something of capability type> remains a capability. This requires clarification.}
 
 \item[Polymorphic \ccode{\&}] \morellovariant{is the approach taken by Morello
   Clang/LLVM.
