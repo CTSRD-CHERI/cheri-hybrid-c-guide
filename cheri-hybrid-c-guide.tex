@@ -190,7 +190,8 @@
 \newcommand{\abstracttext}{
 
 This document is an introduction to the \CHERIhybridCOrCpp{} programming
-language.
+languages.
+\psnote{pluralised languages here, as otherwise it jars, leaving the occurrences below unchanged - the slash makes the latter sort-of-ok IMO, abeit debatable}
 \hybridCOrCpp{} allows the selective use of CHERI capabilities from within an
 otherwise unmodified, and Application Binary Interface (ABI)-compatible,
 C/\cpp{}-language code base.
@@ -229,9 +230,13 @@ despite possibly having a non-NULL DDC?}
 %Hybrid code is used in the CheriBSD kernel, and in the userspace run-time
 %environment for hybrid processes to enable communication with pure-capability
 %processes via co-process IPC.
-Because the benefits of referential, spatial, and temporal memory safety are
-unavailable to both the program and language runtime, care should be utilized,
-and \hybridCOrCpp{} should be used only where strictly necessary.
+
+%Because the benefits of referential, spatial, and temporal memory safety are
+%unavailable to both the program and language runtime, care should be utilized,
+%and \hybridCOrCpp{} should be used only where strictly necessary.
+Because the benefits of CHERI referential, spatial, and temporal memory safety are
+unavailable to both the program and language runtime in \hybridCOrCpp{},
+its use requires care and should be avoided where not strictly necessary.
 
 }
 
