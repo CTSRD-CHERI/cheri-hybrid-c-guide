@@ -125,6 +125,7 @@
 \newcommand{\jrtcnote}[1]{\note{#1}{Jess C.}}
 \newcommand{\hmnote}[1]{\note{#1}{Hesham A.}}
 \newcommand{\nwfnote}[1]{\note{#1}{nwf}}
+\newcommand{\dcnote}[1]{\note{#1}{David}}
 
 % typeset C++ sensibly
 % NB: \nolinebreak was only made robust upstream on 2019-08-20
@@ -220,6 +221,18 @@ object to the increased footprint before they object to the increased DRAM
 traffic implied by moving larger pointers around?}
 
 \arnote{I agree, I think we should possibly use something like ``high pointer density'' instead.}
+
+\dcnote{I don't find the language runtimes argument particularly compelling.
+I'd expect things like Java / JavaScript to carry an explicit heap capability
+in managed code (which may be DDC), but use the pure-cap ABI in any supporting
+C/C++ code so that they support memory safety everywhere.  There's no problem
+in the pure-cap ABI with having a 4GiB GC'd heap capability and using 32-bit
+integer offsets within that as inter-object pointers on that heap.  I see the
+two main uses for the hybrid ABI: (1) Providing some targeted hardening for
+high-value targets, for example using capabilities for all objects parsed from
+an untrusted source and (2) providing wrappers around compartmentalised legacy
+libraries for use in pure-cap programs.  In use (1), you would typically want
+an allocator that returns non-DDC memory to the program.}
 
 \nwfnote{Do you want to call out partially adapted compartmentalized programs
 (possibly inclusive of programs with their own runtime systems; one could
@@ -408,6 +421,7 @@ updated \ccode{malloc()} to provide a \ccode{malloc\_c()} variant returning
 capabilities, implementing suitable capability alignment, or implementing
 temporal memory safety.
 \psnote{hard to parse the latter parts of the preceding sentence}
+\dcnote{We're also missing a \ccode{mmap} variant for allocating memory outside DDC}
 System calls are also not generally extended to support capability arguments
 or return values, limiting the useful origins for capabilities other than as
 derived from the Default Data Capability (DDC) or Program Counter Capability
@@ -452,15 +466,18 @@ runtimes as pure-capability code making selective use of integer pointers
 (e.g., into language-specific heaps reached via capabilities), but
 another approach would be to compile them as hybrid code making selective use
 of capabilities -- e.g., when accessing bounded arrays in the heap.
+\dcnote{It feels quite dangerous to have a single sentence about the
+recommended way of doing things and a long document about the not-recommended
+way.}
 
 \section{Pointer implementation}
 
 \psnote{In hybrid CHERI C/C++...}
 
-Pointers may be implemented using two underlaying architectural types:
+Pointers may be implemented using two underlying architectural types:
 
 \begin{description}
-\item[Integer pointers] are pointers implemented as integers.
+\item[Integer pointers] are pointers implemented as integer addresses.
   Storage size and alignment will be the architectural address size (e.g.,
   64 bits on a 64-bit architecture in a 64-bit process environment).
 
@@ -491,6 +508,10 @@ C/\cpp{} source code and also the language runtime.
 
 \subsection{Pointers in source code, code generation, and the runtime}
 
+\dcnote{This definition would benefit from being much earlier.  The doc
+currently talks about implied pointers a lot before it ever defines them and
+the definition is obvious only to someone who has spent a nontrivial amount of
+time hacking on a C/C++ runtime.}
 We are concerned with pointers arising from two parts of the C implementation:
 
 \begin{description}
@@ -538,6 +559,12 @@ Explicit pointers can be implemented as capability pointers in several ways:
   in escaped values.
   Further research is required to evaluate the viability and usefulness of
   this potential approach.}
+  \dcnote{There's also research needed on the value of this.  The set of things
+  described above looks similar to the set that can be statically
+        verified as safe and so does not benefit from capabilities.  This
+        becomes a lot more interesting in the context of whole-program (or
+        whole-library) analysis, where the complexity of verifying the safety
+        properties grows much faster than escape analysis.}
 
 \item[Other pointers that have a policy-constrained ABI impact]
   \futurevariant{There is also the opportunity to have a policy-determined
@@ -569,6 +596,11 @@ We consider three cases:
   language runtime.
   For example, the hybrid ABI requires that the stack pointer be an integer
   pointer.
+  \dcnote{This isn't clear to me as a general point.  An ISA that had an
+    architectural stack pointer could have a stack capability and define the
+    legacy ops that write an integer to the stack pointer to set the address.
+    We couldn't do that on MIPS because the stack pointer is non-architectural
+    but it would be possible on ARM.}
 
 \item[Implied pointers invisible to the ABI]
   In some cases, implied pointers may be implemented as capability pointers
@@ -641,6 +673,7 @@ metadata) in \cintptrt.
 A new type, \cintcapt, has been introduced, which is able to hold capability
 pointer types -- but will be used only by source code that is capability
 aware.
+\dcnote{Signed and unsigned variants (uintcap\_t)}
 
 \subsection{Casts from integer to capability pointers}
 
@@ -687,6 +720,14 @@ target type of a cast.
 
 \rwnote{Give examples of warnings?}
 
+\dcnote{We used to have instructions for this.  The goal for systems without
+that was cap -> int pointer casts would do a CTestSubset, CSub, CCMOV sequence,
+so casting from a not-in-DDC cap to an integer pointer would give either a
+valid pointer or null.  The programmer invariant is that either the resulting
+pointer can be used to access the entire object, or it is a detectable null.
+The LLVM IR language reference now include this guarantee for address space
+casts.}
+
 \subsection{\& operator}
 
 The \ccode{\&} operator takes the address of a C or \cpp{} variable, and
@@ -716,6 +757,9 @@ given next.}
   \rwnote{Or are they of the underlying storage?}
 \psnote{uneasy with the idea that ``the underlying type'' has unambiguous bounds and permissions... esp. given C's handling of arrays.  Spell out what this means?}
   
+  \dcnote{Is this equivalent to making it return a capability and silencing
+    warnings if you cast that value to an integer pointer without storing it?}
+
 \item[Qualified \ccode{\&}]
   \futurevariant{This approach would qualify or modify the \ccode{\&} operator
   itself, perhaps in the form \ccode{\_\_capability \&}.
@@ -746,6 +790,11 @@ approaches require explicit warnings be generated, whereas the Morello
 approach should avoid surprise at the cost of potentially problematic C
 behavior.
 \psnote{That last sentence is structured as an opposition -- but warnings and avoiding surprise seem consonant...}
+
+\dcnote{This section is missing any description of C++ references.  I recall
+that there were some fun corner cases here, for example if you have a
+cap-pointer to an object (which may not be in DDC), what is the type of a
+reference to that reference?}
 
 \section{Limitations}
 
@@ -822,6 +871,12 @@ Specific limitations by protection type are:
   Data Capability (DDC), and uses those bounds and permissions, which may be
   substantial, and provenance validity is not implemented.
 
+  \dcnote{And, more importantly, casts are not symmetric.  Int to cap pointer
+    casts always allow you to access everything with the result that you could
+    access with the source.  Caps to int casts may give null.  In to cap to int
+    casts are always safe round trips, cap to int to cap may give either a
+    capability with more rights or the null capability.}
+
   \nwfnote{Casts to integers of tag-clear capabilities trap or succeed?}
 
 \item Whenever an integer pointer type is cast to a capability pointer type,
@@ -845,6 +900,10 @@ Specific limitations by protection type are:
   As many pointers in a hybrid program are implemented using integers,
   temporal safety is unable to precisely find all pointers or arrange for
   their suitably atomic replacement.
+  \dcnote{I think I'd phrase this slightly differently.  From the perspective
+    of revocation, DDC (which encompases the C heap, stack, and image), is a
+    single object and so no object reachable from the hybrid heap / stack /
+    globals will ever be revoked.}
 \end{itemize}
 
 As a result of these limitations, privilege minimization in the language
