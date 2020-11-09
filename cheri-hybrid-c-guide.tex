@@ -199,34 +199,22 @@ C/\cpp{}-language code base.
 Its aim is to allow management of, and interoperation with, capability-enabled
 code while using an integer rather than capability pointer implementation
 internally.
-Unlike \purecapCOrCpp{}, \hybridCOrCpp{} defaults to an integer
-implementation for pointers except where specifically annotated in the
+Unlike pure-capability \purecapCOrCpp{}, \hybridCOrCpp{} defaults to an
+integer implementation for pointers except where specifically annotated in the
 program source code.
 Due to the requirement for ABI compatibility, implied pointers within the
 language runtime itself are also primarily implemented as integers rather than
 capabilities.
 
 \hybridCOrCpp{} primarily sees use in specialized low-level systems code that,
-for compatibility or performance reasons, must use non-capability pointers.
+for compatibility or performance reasons, must use non-capability pointers, or
+on the boundaries between pure-capability and conventional generated code.
 Current use cases includes boot loaders, operating-system kernels, and
 Inter-Process Communication (IPC) runtimes.
 Potential future use cases include programs that have been formally verified
-(which do not require dynamic memory safety) and language runtimes (which may
-have high dynamic pointer memory access patterns making wider pointer sizes
-unrealistic).
-
-\nwfnote{Is that really about the \emph{access} pattern or more the
-\emph{density} of pointers in memory?  I would imagine that people usually
-object to the increased footprint before they object to the increased DRAM
-traffic implied by moving larger pointers around?}
-
-\arnote{I agree, I think we should possibly use something like ``high pointer density'' instead.}
-
-\rwnote{The concerns raised by potential CHERI consumers generally relate to
-  increased dynamic cache occupation (and hence DRAM accesses) influencing
-  energy use.  Higher static density can be indicative of that, but it's not
-  clear that the worries are about unused pointers -- it's about actual
-  pointer accesses triggering greater cache pressure.}
+(which do not require dynamic memory safety) and applications with high static
+or dynamic pointer density such as language runtimes (leading to unaffordable
+memory-allocation footprints or cache utilization and energy use).
 
 \dcnote{I don't find the language runtimes argument particularly compelling.
 I'd expect things like Java / JavaScript to carry an explicit heap capability
