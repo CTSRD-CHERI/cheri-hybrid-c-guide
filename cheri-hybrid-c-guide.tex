@@ -197,7 +197,7 @@ C/\cpp{}-language code base.
 Its aim is to allow management of, and interoperation with, capability-enabled
 code while using an integer rather than capability pointer implementation
 internally.
-Unlike in \purecapCOrCpp{}, \hybridCOrCpp{} defaults to an integer
+Unlike \purecapCOrCpp{}, \hybridCOrCpp{} defaults to an integer
 implementation for pointers except where specifically annotated in the
 program source code.
 Due to the requirement for ABI compatibility, implied pointers within the
@@ -217,6 +217,8 @@ unrealistic).
 \emph{density} of pointers in memory?  I would imagine that people usually
 object to the increased footprint before they object to the increased DRAM
 traffic implied by moving larger pointers around?}
+
+\arnote{I agree, I think we should possibly use something like ``high pointer density'' instead.}
 
 \nwfnote{Do you want to call out partially adapted compartmentalized programs
 (possibly inclusive of programs with their own runtime systems; one could
