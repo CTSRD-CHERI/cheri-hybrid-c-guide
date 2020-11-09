@@ -222,6 +222,12 @@ traffic implied by moving larger pointers around?}
 
 \arnote{I agree, I think we should possibly use something like ``high pointer density'' instead.}
 
+\rwnote{The concerns raised by potential CHERI consumers generally relate to
+  increased dynamic cache occupation (and hence DRAM accesses) influencing
+  energy use.  Higher static density can be indicative of that, but it's not
+  clear that the worries are about unused pointers -- it's about actual
+  pointer accesses triggering greater cache pressure.}
+
 \dcnote{I don't find the language runtimes argument particularly compelling.
 I'd expect things like Java / JavaScript to carry an explicit heap capability
 in managed code (which may be DDC), but use the pure-cap ABI in any supporting
@@ -233,6 +239,10 @@ high-value targets, for example using capabilities for all objects parsed from
 an untrusted source and (2) providing wrappers around compartmentalised legacy
 libraries for use in pure-cap programs.  In use (1), you would typically want
 an allocator that returns non-DDC memory to the program.}
+
+\rwnote{I agree that I consider this a less compelling use case than a
+  pure-capability runtime with integer heap offsets for per-language heaps.
+  But there are other CHERI consumers who consider it highly desirable.}
 
 \nwfnote{Do you want to call out partially adapted compartmentalized programs
 (possibly inclusive of programs with their own runtime systems; one could
