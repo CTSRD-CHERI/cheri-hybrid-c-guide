@@ -741,6 +741,11 @@ pointer can be used to access the entire object, or it is a detectable null.
 The LLVM IR language reference now include this guarantee for address space
 casts.}
 
+\bdnote{In the CheriBSD kernel \ccode{\_\_cheri\_fromcap} is commonly used
+for kernel-addresses that happen to be stored in capabilities,
+but probably should be replaced by a macro that ensures that this is true
+on systems where DDC includes userspace addresses (all of them today).}
+
 \subsection{\& operator}
 
 The \ccode{\&} operator takes the address of a C or \cpp{} variable, and
