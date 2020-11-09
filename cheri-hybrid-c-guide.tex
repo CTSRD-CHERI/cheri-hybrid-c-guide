@@ -105,7 +105,7 @@
 
 \newcommand{\SIGPROT}{{\ccode{SIGPROT}}\xspace}
 
-\newcommand{\futurevariant}[1]{{\color{blue} #1}}
+\newcommand{\futurevariant}[1]{{\color{purple} #1}}
 \newcommand{\morellovariant}[1]{{\color{red} #1}}
 
 \newcommand{\note}[2]{{\color{blue}[ Note: #1 - #2]}}
@@ -310,7 +310,7 @@ This document currently describes three variants of \hybridCOrCpp{}:
 
 \item Our current thinking on next directions for \hybridCOrCpp{}.
 
-  Key differences are in \futurevariant{blue text}.
+  Key differences are in \futurevariant{purple text}.
 \end{enumerate}
 
 \noindent
@@ -525,8 +525,6 @@ Explicit pointers can be implemented as capability pointers in several ways:
   this potential approach.}
 \end{description}
 
-\nwfnote{Is that ``policy-constrained'' or ``policy-contained'' or something else?}
-
 \rwnote{Do we want a new item, ``Implied pointers that have a limited impact
   on ABI''?  E.g., to capture the CRA case?}
 
@@ -551,15 +549,17 @@ We consider three cases:
   In some cases, implied pointers may be implemented as capability pointers
   without impacting the ABI.
 
-  {\color{blue} For example, hybrid code could use a capability return address
+  \futurevariant{For example, hybrid code could use a capability return address
   rather than an integer return address to provide pointer provenance validity
   for the return address, even if not tight bounds, as the return address is
   not part of the ABI to other functions.}
+
   \jrtcnote{\cfunc{\_\_builtin\_return\_address} does leak these implied
   pointers to some code, and it has implications for things like libunwind, so
   it does affect the ABI. Also the kernel needs to know to put a capability in
   CRA in order for signal handlers to be able to return to \cfunc{sigcode}.
   There's a lot of subtlety here that needs to be captured.}
+
   \rwnote{I'd been pondering whether the ABI might allow us to use a return
   capability, but in which unwind/etc only looked at the lower 64 bits...  And
   I suppose the builtin could be polymorphic.  But signals are indeed a messy
@@ -669,6 +669,7 @@ given next.}
   In this approach, \ccode{\&} is polymorphic: if assigned to a capability
   pointer, the resulting bounds and permissions are those of the underlying
   type.}
+
   \rwnote{Or are they of the underlying storage?}
 
 \item[Qualified \ccode{\&}]
@@ -822,9 +823,6 @@ above).
 \section{Further reading}
 \label{sec:further_reading}
 
-\rwnote{Update: The two real references are likely the CHERI C/C++ guide and
-the Introduction to CHERI report}
-
 The primary reference for the CHERI Instruction-Set Architecture (ISA) is the
 ISA specification; at the time of writing, the most recent version is CHERI
 ISAv8~\cite{UCAM-CL-TR-951}:
@@ -889,7 +887,7 @@ includes greater implementation detail~\cite{UCAM-CL-TR-932}:
   authors on this document.}
 
 We gratefully acknowledge the helpful feedback from our colleagues, including
-Ruben Ayrapetyan, Silviu Baranga, and Nathaniel Filardo.
+Ruben Ayrapetyan, Silviu Baranga, Kevin Brodsky, and Nathaniel Filardo.
 This work was supported by the Defense Advanced Research Projects Agency (DARPA) and the Air Force Research Laboratory (AFRL), under contracts
 FA8750-10-C-0237 (``CTSRD'') and HR0011-18-C-0016 (``ECATS'').
 The views, opinions, and/or findings contained in this report are those of the authors and should not be interpreted as representing the official views or policies of the Department of Defense or the U.S. Government.
