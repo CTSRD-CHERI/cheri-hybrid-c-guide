@@ -335,35 +335,40 @@ specifically annotated pointers to be implemented using capabilities.
 This is in contrast to \purecapCOrCpp{}, which implements all pointers as
 capabilities by default, and whose aim is strong referential, spatial, and
 temporal memory protection for C/\cpp{}.
+\psnote{including ``temporal'' there, unqualified, is going to be confusing.  Suggest splitting the sentence up and describing more explicitly what the current state and plausible options are w.r.t. temporal}
 While \hybridCOrCpp{} is unable to provide strong referential, spatial, or
 temporal safety in most use cases, it allows conventional
 integer-pointer-based code to interact usefully with capabilities in a number
 of specific use cases.
+\psnote{that seems to underplay what one can get from hybrid -- surely one can say something about ``specific protections'' or ``protection in specific ways'' or something?}
 
 \subsection{Hybrid CheriBSD kernel}
 
+\psnote{I know this isn't really supposed to be standalone, but best say \emph{something} about what CheriBSD is, rather than introducing it en passant}
+
 CheriBSD implements two kernel variants: a \hybridCOrCpp{} compilation, and a
 \purecapCOrCpp{} variant.
-The \hybridCOrCpp{} compilation aims to support a CHERI-enabled userspace
+The former, \hybridCOrCpp{} compilation, aims to support a CHERI-enabled userspace
 without substantive changes to kernel-internal protection.
-In the latter, the aim is to also use CHERI memory protection within the
+The latter additionally aims to use CHERI memory protection within the
 kernel.
+\psnote{say explicitly that we don't discuss the latter further here?  Otherwise it's confusing to set up the opposition but then only talk about the former below}
 Both kernel variants support hybrid and pure-capability (CheriABI) userspace
 process environments.
 
 The \hybridCOrCpp{}-compiled CheriBSD kernel is almost entirely implemented
 in conventional \COrCpp{} using integer pointers, except for its handling of
 system-call arguments and capability state, which are manually annotated.
-Capability pointers are used in the kernel for three reasons:
+Capability pointers are used in this version of the kernel for three reasons:
 
 \begin{enumerate}
-\item To manage the dynamic state of capability-enabled kernel and user
-  threads as part of context management and exception handling;
+\item to manage the dynamic state of capability-enabled kernel and user
+  threads, as part of context management and exception handling;
 
-\item In the implementation of tag-enabled virtual-memory abstractions, such
+\item in the implementation of tag-enabled virtual-memory abstractions, such
   as copy-on-write propagating tag bits; and
 
-\item To handle pointer-type userspace system-call arguments as capabilities
+\item to handle pointer-type userspace system-call arguments as capabilities
   rather than integer pointers, both to enable capability-based behaviors
   (such as having opaque pointer types used in POSIX asynchronous I/O be able
   to hold capabilities), and to prevent confused deputy attacks (such as might
@@ -374,7 +379,7 @@ Capability pointers are used in the kernel for three reasons:
 In order to unify system-call handling, user pointers originating in hybrid
 ABI processes are converted into capability pointers at the system-call
 boundary.
-This leads to coarse-grained bounds, but, for example, permit user pointers to
+This leads to coarse-grained bounds, but, for example, permits user pointers to
 be used only in accessing userspace memory.
 For pure-capability (CheriABI) processes, user pointer types originate as
 capabilities, and are simply propagated as necessary.
@@ -384,22 +389,31 @@ with \uucap{} throughout.
 
 \subsection{The CheriBSD hybrid process environment}
 
-In the usermode portion of the CheriBSD hybrid ABI process environment, some
+\psnote{Say what this is?}
+
+In the usermode portion of the CheriBSD hybrid ABI process environment,
+\psnote{as supported by either the hybrid or pure variants??}
+some
 system libraries are extended with modest capability annotations to support
 capability use.
 For example, \ccode{memcpy()} and \ccode{sort()} must propagate tags rather
 than perform byte-wise copies, in order to preserve pointers embedded in data
 structures across memory copies.
-In general, support for capabilities is weak within the runtime: We have not
+\psnote{Apart from that??}
+\psnote{[limited/weak] ?}
+In general, support for capabilities is weak within the runtime: we have not
 updated \ccode{malloc()} to provide a \ccode{malloc\_c()} variant returning
 capabilities, implementing suitable capability alignment, or implementing
 temporal memory safety.
+\psnote{hard to parse the latter parts of the preceding sentence}
 System calls are also not generally extended to support capability arguments
 or return values, limiting the useful origins for capabilities other than as
 derived from the Default Data Capability (DDC) or Program Counter Capability
 (PCC).
 
 \subsection{Co-process IPC libraries in hybrid processes}
+
+\psnote{be clear that this is quite separate to the CheriBSD world??}
 
 We have been developing a CHERI-based compartmentalization model called
 \textit{co-located processes} (or \textit{co-processes} for short).
@@ -438,6 +452,8 @@ another approach would be to compile them as hybrid code making selective use
 of capabilities -- e.g., when accessing bounded arrays in the heap.
 
 \section{Pointer implementation}
+
+\psnote{In hybrid CHERI C/C++...}
 
 Pointers may be implemented using two underlaying architectural types:
 
@@ -487,7 +503,9 @@ We are concerned with pointers arising from two parts of the C implementation:
   This includes the stack pointer, program counter and return addresses, PLT
   entries, vtable pointers, and GOT/captable pointers.
   In \hybridCOrCpp{}, these pointers will be implemented using integers,
-  although in some cases underlying data structures will be replicated to
+  although in some cases
+\psnote{probably we should be explicit here about which and why, not just ``eg of the GOT''}
+  underlying data structures will be replicated to
   provide capability versions of them -- e.g., of the GOT.
 \end{description}
 
@@ -582,6 +600,8 @@ We consider three cases:
 \end{description}
 
 \section{\hybridCOrCpp{}}
+
+\psnote{wasn't the preceding section also all about \hybridCOrCpp{}?}
 
 The C and \cpp{} languages are generally unperturbed by the introduction of
 \hybridCOrCpp{} support, except where specifically impacted by the use or
