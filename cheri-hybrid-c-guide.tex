@@ -696,6 +696,8 @@ capability bounds precision requirements.
 Because of these risks, CHERI Clang/LLVM will always generate a warning in
 the absence of use of the new \ccode{\_\_cheri\_addr} qualifier on the target
 type of a cast.
+\bdnote{I think this is supposed to be \ccode{\_\_cheri\_tocap}. \ccode{\_\_cheri\_addr} is for capability to non-pointer integrer cases.}
+
 \psnote{introducing \ccode{\_\_cheri\_addr} in passing -- better to be more explicit?}
 
 \rwnote{Give examples of warnings?}
