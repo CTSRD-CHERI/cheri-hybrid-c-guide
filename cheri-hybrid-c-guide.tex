@@ -410,11 +410,13 @@ with \uucap{} throughout.
 
 \subsection{The CheriBSD hybrid process environment}
 
-\psnote{Say what this is?}
+The CheriBSD hybrid process environment modestly extends the existing native
+non-CHERI process ABI on each architecture.
+Capability registers and tagged memory are maintained, and signal-frame state
+is extended, but initial process state, system-call arguments, and system-call
+return values hold integer pointers rather than capability pointers.
 
-In the usermode portion of the CheriBSD hybrid ABI process environment,
-\psnote{as supported by either the hybrid or pure variants??}
-some
+In the usermode portion of the CheriBSD hybrid ABI process environment, some
 system libraries are extended with modest capability annotations to support
 capability use.
 For example, \ccode{memcpy()} and \ccode{sort()} must propagate tags rather
@@ -422,23 +424,24 @@ than perform byte-wise copies, in order to preserve pointers embedded in data
 structures across memory copies.
 \psnote{Apart from that??}
 \psnote{[limited/weak] ?}
-In general, support for capabilities is weak within the runtime: we have not
-updated \ccode{malloc()} to provide a \ccode{malloc\_c()} variant returning
-capabilities, implementing suitable capability alignment, or implementing
-temporal memory safety.
+In general, support for capabilities is weak within the runtime.
+For example, we have not implemented a \ccode{malloc\_c()} variant that would
+return a capability, implement alignment and padding taking into account
+capability bounds imprecision, or implement temporal memory safety.
 \psnote{hard to parse the latter parts of the preceding sentence}
-\dcnote{We're also missing a \ccode{mmap} variant for allocating memory outside DDC}
+\rwnote{Possibly now improved?}
 System calls are also not generally extended to support capability arguments
 or return values, limiting the useful origins for capabilities other than as
 derived from the Default Data Capability (DDC) or Program Counter Capability
 (PCC).
+For example, to support non-DDC-derived memory mappings, new \ccode{mmap\_c}
+and \ccode{munmap\_c} system-call variants would be desirable.
 
 \subsection{Co-process IPC libraries in hybrid processes}
 
-\psnote{be clear that this is quite separate to the CheriBSD world??}
-
-We have been developing a CHERI-based compartmentalization model called
-\textit{co-located processes} (or \textit{co-processes} for short).
+We have been developing an experimental CHERI-based compartmentalization model
+called \textit{co-located processes} (or \textit{co-processes} for short) on
+the CheriBSD operating system.
 In this model, a set of UNIX processes are colocated within a single shared
 virtual address space, but kept separate by virtue of CHERI capabilities:
 processes only ever receive capabilities to their own individual mappings.
@@ -480,7 +483,8 @@ way.}
 
 \psnote{In hybrid CHERI C/C++...}
 
-Pointers may be implemented using two underlying architectural types:
+In \CHERIhybridCOrCpp{}, pointers may be implemented using two underlying
+architectural types:
 
 \begin{description}
 \item[Integer pointers] are pointers implemented as integer addresses.
