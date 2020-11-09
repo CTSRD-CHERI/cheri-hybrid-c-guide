@@ -882,6 +882,8 @@ Specific limitations by protection type are:
   not implement capability protections including tag, bounds, and permissions.
   As a result, integer pointers suffer from a lack of provenance validity and
   spatial safety.
+  \bdnote{Furthermore, an unmodified allocator may produce allocations lacking
+  sufficent alignment support precise bounds.}
 
 \item Whenever a capability pointer type is cast to an integer pointer type,
   its capability metadata, including tag, bounds, and permissions, are lost.
