@@ -373,7 +373,8 @@ process environments.
 
 The \hybridCOrCpp{}-compiled CheriBSD kernel is almost entirely implemented
 in conventional \COrCpp{} using integer pointers, except for its handling of
-system-call arguments and capability state, which are manually annotated.
+pointers to userspace (e.g.  system-call arguments) and capability state,
+which are manually annotated.
 Capability pointers are used in this version of the kernel for three reasons:
 
 \begin{enumerate}
@@ -393,7 +394,13 @@ Capability pointers are used in this version of the kernel for three reasons:
 
 In order to unify system-call handling, user pointers originating in hybrid
 ABI processes are converted into capability pointers at the system-call
-boundary.
+boundary%
+\footnote{System-call arguments may point to object containing pointers
+which the kernel must also translate.
+Such translation may occur at the syscall-boundry (e.g. the \ccode{struct iovec}
+in \ccode{readv} or deep within the kernel (e.g. a driver-specific \ccode{ioctl}
+struct.)}
+%
 This leads to coarse-grained bounds, but, for example, permits user pointers to
 be used only in accessing userspace memory.
 For pure-capability (CheriABI) processes, user pointer types originate as
@@ -703,6 +710,10 @@ type of a cast.
 \rwnote{Give examples of warnings?}
 
 \nwfnote{Recommend \ccode{cheri\_address\_set}?}
+
+\bdnote{We rarely use \_\_cheri\_tocap and instead use macros like \ccode{\_\_USER\_CAP} that perform some validation.  In the case of \ccode{\_\_USER\_CAP} we have a \ccode{\_\_USER\_CFROMPTR} that derives
+from the process's DDC and (critically) ensures that sentinal values near (signed) zero are NULL-derived. We probably need to mention this here
+or above when we talk about syscall arguments.}
 
 \subsection{Casts from capability to integer pointers}
 
