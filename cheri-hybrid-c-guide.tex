@@ -357,8 +357,9 @@ of specific use cases.
 
 \subsection{Hybrid CheriBSD kernel}
 
-\psnote{I know this isn't really supposed to be standalone, but best say \emph{something} about what CheriBSD is, rather than introducing it en passant}
-
+CheriBSD is an adaptation of the open-source FreeBSD operating system to
+tightly incorporate CHERI support for memory protection and software
+compartmentalization.
 CheriBSD implements two kernel variants: a \hybridCOrCpp{} compilation, and a
 \purecapCOrCpp{} variant.
 The former, \hybridCOrCpp{} compilation, aims to support a CHERI-enabled userspace
@@ -393,11 +394,11 @@ Capability pointers are used in this version of the kernel for three reasons:
 In order to unify system-call handling, user pointers originating in hybrid
 ABI processes are converted into capability pointers at the system-call
 boundary%
-\footnote{System-call arguments may point to object containing pointers
-which the kernel must also translate.
-Such translation may occur at the syscall-boundry (e.g. the \ccode{struct iovec}
-in \ccode{readv} or deep within the kernel (e.g. a driver-specific \ccode{ioctl}
-struct.)}
+\footnote{System-call arguments may point to structures themselves containing
+  pointers, which the kernel must also translate.
+  Such translation may occur at the syscall-boundry (e.g., the \ccode{struct
+  iovec} in \ccode{readv}) or deep within the kernel (e.g., a driver-specific
+  \ccode{ioctl} struct).}
 %
 This leads to coarse-grained bounds, but, for example, permits user pointers to
 be used only in accessing userspace memory.
