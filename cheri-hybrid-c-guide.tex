@@ -126,6 +126,7 @@
 \newcommand{\hmnote}[1]{\note{#1}{Hesham A.}}
 \newcommand{\nwfnote}[1]{\note{#1}{nwf}}
 \newcommand{\dcnote}[1]{\note{#1}{David}}
+\newcommand{\jhbnote}[1]{\note{#1}{John B.}}
 
 % typeset C++ sensibly
 % NB: \nolinebreak was only made robust upstream on 2019-08-20
@@ -389,6 +390,13 @@ Capability pointers are used in this version of the kernel for three reasons:
   to hold capabilities), and to prevent confused deputy attacks (such as might
   occur if an omnipotent kernel ignored userspace-originated bounds on stack
   or heap allocations).
+  \jhbnote{I think system-call argument is perhaps too limiting.  We
+    also use capabilities for things like the initial stack layout
+    during exec which is fabricated by the kernel and not provided as
+    a syscall argument.  I think it might be best to say something
+    like ``userspace pointers'' most of which come from
+    user-originated system call arguments, but may also be
+    instantiated by the kernel.}
 \end{enumerate}
 
 In order to unify system-call handling, user pointers originating in hybrid
@@ -635,6 +643,16 @@ We consider three cases:
   issue.
   Is there a better example we could give?}
 
+  \jhbnote{Not as true for MIPS, but on many architectures, the
+    position of the saved PC and frame pointer in the stack is part
+    of the ABI (if you compile with -fno-omit-frame-pointer as
+    FreeBSD's kernel does, and as all of illumos does).  DDB in the
+    kernel relies on this convention for stack unwinding even on
+    non-x86 platforms like RISC-V.  DTrace also relies on it (so for
+    working userspace dtrace FBT probes I think you have to compile
+    everything with -fno-omit-frame-pointer).  My knee-jerk reaction
+    is that the RA is really part of the ABI in practice.}
+
 \item[Implied pointers that can be replicated as integer and capability
   pointers]
   In other cases, implied pointers may be replicated, with a full set of
@@ -651,6 +669,16 @@ We consider three cases:
 
   \psnote{really the first Morell-specific thing?}
   \psnote{the document has never (as far as I noticed) actually explained what a captable \emph{is}. probably that should have been much earlier}
+  \jhbnote{I'm actually tempted to stop calling captables their own
+    name and just treat them as GOTs and that a GOT can contain
+    entries of various types: integer addresses, integer indices
+    (think TLS DSO index), and capabilities.  The compiler/linker are
+    responsible for avoiding type confusion by ensuring all uses and
+    relocations for a given GOT entry use the same type.  I think on
+    CHERI-MIPS at least we don't yet have a merged GOT and actually
+    have separate sections.  I'm not sure it is required to have
+    separate sections on other architectures which use .pltrel and
+    jump slot relocations.}
 
 \end{description}
 
@@ -718,6 +746,17 @@ type of a cast.
 from the process's DDC and (critically) ensures that sentinal values near (signed) zero are NULL-derived. We probably need to mention this here
 or above when we talk about syscall arguments.}
 
+\jhbnote{I think the takeaway about \ccode{\_\_USER\_CAP} is that it
+  is not using language features (i.e. casts as being described here),
+  but instead is a separate DSL built on top of C for use in the
+  kernel.  I do think it is very much worth calling out that in the
+  kernel, using DDC to derive caps for user addresses is almost always
+  wrong, and that you want to be using the user's DDC explicitly
+  instead.  For the purposes of this section about casts, simply
+  talking about \_\_cheri\_tocap is ok.  However, we are missing an
+  entire subsection here for ``Casts from capability to integer address``
+  which needs to talk about \_\_cheri_addr.}
+ 
 \subsection{Casts from capability to integer pointers}
 
 \psnote{terminology: it's pretty easy to misread ``integer pointer'' as ``pointer to integer'', as that's normal C usage.  Maybe we can find a different term?  ``machine-word pointer'' ??}
@@ -860,6 +899,13 @@ Were more general-purpose programming the aim, a set of extended
 capability-aware APIs (e.g., \ccode{malloc\_c()}, \ccode{mmap\_c()}, and so
 on), returning and managing capability properties explicitly through
 \uucap{}-extended types, would be required.
+
+\jhbnote{Somewhere we should perhaps point out that existing hybrid
+  ABIs don't try to ``respect'' DDC.  In particular, as far as I am
+  aware, \ccode{mmap()} will happily return integer pointers that are
+  out of bounds of DDC if userland has constrained its DDC.  I think
+  the expectation is that if hybrid userland wants to modify DDC, it
+  has to wrap system calls, etc.}
 
 \subsection{Incomplete referential, spatial, and temporal safety}
 
