@@ -213,25 +213,9 @@ on the boundaries between pure-capability and conventional generated code.
 Current use cases includes boot loaders, operating-system kernels, and
 Inter-Process Communication (IPC) runtimes.
 Potential future use cases include programs that have been formally verified
-(which do not require dynamic memory safety) and applications with high static
-or dynamic pointer density such as language runtimes (leading to unaffordable
-memory-allocation footprints or cache utilization and energy use).
-
-\dcnote{I don't find the language runtimes argument particularly compelling.
-I'd expect things like Java / JavaScript to carry an explicit heap capability
-in managed code (which may be DDC), but use the pure-cap ABI in any supporting
-C/C++ code so that they support memory safety everywhere.  There's no problem
-in the pure-cap ABI with having a 4GiB GC'd heap capability and using 32-bit
-integer offsets within that as inter-object pointers on that heap.  I see the
-two main uses for the hybrid ABI: (1) Providing some targeted hardening for
-high-value targets, for example using capabilities for all objects parsed from
-an untrusted source and (2) providing wrappers around compartmentalised legacy
-libraries for use in pure-cap programs.  In use (1), you would typically want
-an allocator that returns non-DDC memory to the program.}
-
-\rwnote{I agree that I consider this a less compelling use case than a
-  pure-capability runtime with integer heap offsets for per-language heaps.
-  But there are other CHERI consumers who consider it highly desirable.}
+(which do not require dynamic memory safety) and code with high static or
+dynamic pointer density (leading to unaffordable memory-allocation footprints
+or cache utilization and energy use).
 
 \nwfnote{Do you want to call out partially adapted compartmentalized programs
 (possibly inclusive of programs with their own runtime systems; one could
