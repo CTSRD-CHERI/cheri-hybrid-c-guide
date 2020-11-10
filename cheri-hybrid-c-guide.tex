@@ -430,14 +430,20 @@ capability use.
 For example, \ccode{memcpy()} and \ccode{sort()} must propagate tags rather
 than perform byte-wise copies, in order to preserve pointers embedded in data
 structures across memory copies.
+In addition, new variants of a few functions are added which use
+capability pointers rather than integer pointers such as
+\ccode{memcpy\_c()} and \ccode{memset\_c()}.
 \psnote{Apart from that??}
 \psnote{[limited/weak] ?}
-In general, support for capabilities is weak within the runtime.
+However, support for capabilities is generally weak within the runtime.
 For example, we have not implemented a \ccode{malloc\_c()} variant that would
 return a capability, implement alignment and padding taking into account
 capability bounds imprecision, or implement temporal memory safety.
 \psnote{hard to parse the latter parts of the preceding sentence}
 \rwnote{Possibly now improved?}
+\jhbnote{I think it is confusing to mention \ccode{malloc\_c()} this
+  early as the idea of \ccode{*\_c()} variants isn't yet explained.  I
+  have tried to rectify this a bit.}
 System calls are also not generally extended to support capability arguments
 or return values, limiting the useful origins for capabilities other than as
 derived from the Default Data Capability (DDC) or Program Counter Capability
