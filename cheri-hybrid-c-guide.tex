@@ -562,6 +562,8 @@ Explicit pointers can be implemented as capability pointers in several ways:
   impact on the ABI exposed (or potentially exposed) to other code.
   For example, unescaped pointers to local variables may be suitable for
   capability-pointer compilation.
+  \arnote{We probably don't want to do this. As David mentions it's unlikely to be beneficial for security.
+  Furthermore, not adding bounds to unescaped pointers has resulted in a huge performance improvement for purecap code due to reduced stack spills, so we probably don't want to introduce this for hybrid.}
   Other constraints may exist, such as the non-embedding of the pointer's size
   in escaped values.
   Further research is required to evaluate the viability and usefulness of
