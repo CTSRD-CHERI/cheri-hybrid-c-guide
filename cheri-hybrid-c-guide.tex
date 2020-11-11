@@ -357,7 +357,7 @@ process environments.
 
 The \hybridCOrCpp{}-compiled CheriBSD kernel is almost entirely implemented
 in conventional \COrCpp{} using integer pointers, except for its handling of
-pointers to userspace (e.g.  system-call arguments) and capability state,
+pointers to userspace (e.g., system-call arguments) and capability state,
 which are manually annotated.
 Capability pointers are used in this version of the kernel for three reasons:
 
@@ -493,10 +493,11 @@ architectural types:
 
   Explicit pointers will be of this type by default.
   Implied pointers will be of this type if required by the existing ABI.
+  \arnote{Should we explain what we mean by explicit and implied, or assume readers have read other documents already?}
 
 \item[Capability pointers] are pointers implemented using capabilities.
   Storage size and alignment will be the architectural capability size (e.g.,
-  128 bits on a 64-bit architecture in a 64-bit process environment\psnote{, with the tag bit for eachcapability-sized-and-aligned unit of memory maintained by the hardware in non-addressable memory}).
+  128 bits on a 64-bit architecture in a 64-bit process environment\psnote{, with the tag bit for each capability-sized-and-aligned unit of memory maintained by the hardware in non-addressable memory}).
 
   Generated code will utilize capability load and store instructions to access
   variables of these types, and dereference them using capability-relative
