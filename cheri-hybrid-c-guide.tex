@@ -735,7 +735,7 @@ type of a cast.
 \nwfnote{Recommend \ccode{cheri\_address\_set}?}
 
 \bdnote{We rarely use \_\_cheri\_tocap and instead use macros like \ccode{\_\_USER\_CAP} that perform some validation.  In the case of \ccode{\_\_USER\_CAP} we have a \ccode{\_\_USER\_CFROMPTR} that derives
-from the process's DDC and (critically) ensures that sentinal values near (signed) zero are NULL-derived. We probably need to mention this here
+from the process's DDC and (critically) ensures that sentinel values near (signed) zero are NULL-derived. We probably need to mention this here
 or above when we talk about syscall arguments.}
 
 \jhbnote{I think the takeaway about \ccode{\_\_USER\_CAP} is that it
@@ -925,7 +925,7 @@ Specific limitations by protection type are:
   As a result, integer pointers suffer from a lack of provenance validity and
   spatial safety.
   \bdnote{Furthermore, an unmodified allocator may produce allocations lacking
-  sufficent alignment support precise bounds.}
+  sufficient alignment support precise bounds.}
 
 \item Whenever a capability pointer type is cast to an integer pointer type,
   its capability metadata, including tag, bounds, and permissions, are lost.
@@ -1003,7 +1003,7 @@ ISAv8~\cite{UCAM-CL-TR-951}:
 \smallskip
 
 \noindent
-Our technical report, \textit{An Introduction to CHERI}, provides a high-level
+Our technical report, \textit{\citefield{UCAM-CL-TR-941}{title}}, provides a high-level
 overview of the CHERI architecture, ISA modeling, hardware implementations,
 and software stack~\cite{UCAM-CL-TR-941}:
 
@@ -1014,7 +1014,7 @@ and software stack~\cite{UCAM-CL-TR-941}:
 
 \noindent
 The primary reference for \purecapCOrCpp{} is our technical report,
-\textit{CHERI C/C++ Programming Guide}~\cite{UCAM-CL-TR-947}:
+\textit{\citefield{UCAM-CL-TR-947}{title}}~\cite{UCAM-CL-TR-947}:
 
 \smallskip
 \noindent
