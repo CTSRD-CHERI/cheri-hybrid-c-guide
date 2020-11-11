@@ -402,35 +402,38 @@ on our GitHub repository for the report:
 
 \section{Pointer implementation}
 
-We are concerned with pointers arising from two parts of the C implementation:
+We are concerned with pointers arising from two parts of the \COrCpp implementation:
 
 \begin{description}
 \item[Explicit pointers] are pointers visible in the program source.
   These include declared pointers taken to local, global, or thread-local
   variables, to functions, or pointers to returned heap allocations.
   In \hybridCOrCpp{}, these pointers will be implemented using capabilities
-  only if specifically annotated.
+  only if specifically annotated using a \uucap qualifier.
+  When considering \cpp, we also include references in this category, as
+  the language runtime generally implements them in the same way as pointers.
 
 \item[Implied pointers] are those used by the language runtime and generated
   code to manage the language implementation itself.
-  This includes the stack pointer, program counter and return addresses, PLT
+  These implied pointers are required to implement language features such as
+  global variables, function calls, etc. Examples of implied pointers include
+  the stack pointer, program counter and return addresses, PLT
   entries, vtable pointers, GOT/captable pointers, and the \cpp{}
   \ccode{this} pointer.
   \psnote{wonder whether it'd be useful in this document to briefly explain what each of these latter three are for, to make it useful for C/C++ programmers and semanticists who aren't familiar with these internals?}
   \psnote{actually, maybe it's worth (time permitting) explaining all these, including side-by-side how they work in vanilla, pure-cap, and hybrid?}
-  In \hybridCOrCpp{}, these pointers will be implemented using integers,
+  In \hybridCOrCpp{}, these pointers will generally be implemented using integers,
   although in some cases
 \psnote{probably we should be explicit here about which and why, not just ``eg of the GOT''}
   underlying data structures will be replicated to
   provide capability versions of them -- e.g., of the GOT.
 \end{description}
 
-\noindent
-In \hybridCOrCpp{}, pointers may be implemented using two underlying
+In \CHERIhybridCOrCpp{}, explicit and implied pointers may be implemented using two underlying
 architectural types:
 
 \begin{description}
-\item[Integer pointers] are pointers implemented as integer addresses.
+\item[Integer addresses:]
   Storage size and alignment will be the architectural address size (e.g.,
   64 bits on a 64-bit architecture in a 64-bit process environment).
 
@@ -441,7 +444,7 @@ architectural types:
   Explicit pointers will be of this type by default.
   Implied pointers will be of this type if required by the existing ABI.
 
-\item[Capability pointers] are pointers implemented using capabilities.
+\item[CHERI capabilities:]
   Storage size and alignment will be the architectural capability size (e.g.,
   128 bits on a 64-bit architecture in a 64-bit process environment, with the
   tag bit for each capability-sized-and-aligned unit of memory maintained by
@@ -461,6 +464,8 @@ architectural types:
 In the following sections, we consider the implementation of pointers in
 C/\cpp{} source code and also the language runtime.
 
+\arnote{There is still a lot of duplication here, will try to reword it more later.}
+
 \subsection{Explicit pointers}
 
 Explicit pointers can be implemented as capability pointers in several ways:
@@ -471,8 +476,8 @@ Explicit pointers can be implemented as capability pointers in several ways:
   qualifier \uucap{} is used on a pointer type
   For example, \ccode{char * \_\_capability c} declares a capability pointer
   to a \ccode{char}.
-  The \uucap qualifier can also be applied to \cpp references (e.g., \ccode{char \& \_\_capability} to declares a capability reference to \ccode{char}).
-  Unqualified explicit pointers and \cpp references will be implemented as integer addresses.
+  The \uucap qualifier can also be applied to \cpp{} references (e.g., \ccode{char \& \_\_capability} to declares a capability reference to \ccode{char}).
+  Unqualified explicit pointers and \cpp{} references will be implemented as integer addresses.
 
 
 \psnote{The following two items seem to be a radical shift of focus, from what hybrid currently is to (free-wheeling or prototyped?  unclear) speculation about what one could do instead/aswell.  Suggest either skipping or very clearly labelling with their actual status}
@@ -1037,7 +1042,7 @@ As a result of these limitations, privilege minimization in the language
 runtime, control-flow mechanisms, and user data types is largely unimplemented.
 Protections are only refined and enforced for programmer-selected types, which
 can offer substantial value in specific scenarios, but is not a source of
-general robustness for the C and \cpp implementations.
+general robustness for the C and \cpp{} implementations.
 All privilege reductions are programmer-implemented through explicit calls to
 narrow bounds and permissions.
 
