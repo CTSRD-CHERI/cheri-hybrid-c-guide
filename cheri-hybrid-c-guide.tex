@@ -548,10 +548,11 @@ Explicit pointers can be implemented as capability pointers in several ways:
 \begin{description}
 \item[Pointers qualified with \uucap{}]
   To implement an explicit pointer as a capability in \hybridCOrCpp{}, the
-  qualifier \uucap{} is used on a pointer type.
+  qualifier \uucap{} is used on a pointer type
   For example, \ccode{char * \_\_capability c} declares a capability pointer
   to a \ccode{char}.
-  Unqualified explicit pointers will be implemented as integer pointers.
+  The \uucap qualifier can also be applied to \cpp references (e.g., \ccode{char \& \_\_capability} to declares a capability reference to \ccode{char}).
+  Unqualified explicit pointers and \cpp references will be implemented as integer addresses.
 
 
 \psnote{The following two items seem to be a radical shift of focus, from what hybrid currently is to (free-wheeling or prototyped?  unclear) speculation about what one could do instead/aswell.  Suggest either skipping or very clearly labelling with their actual status}
