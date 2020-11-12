@@ -385,7 +385,7 @@ Capability pointers are used in this version of the kernel for three reasons:
 
 In order to unify system-call handling, user pointers originating in hybrid
 ABI processes are converted into capability pointers at the system-call
-boundary%
+boundary.%
 \footnote{System-call arguments may point to structures themselves containing
   pointers, which the kernel must also translate.
   Such translation may occur at the syscall-boundry (e.g., the \ccode{struct
@@ -396,7 +396,7 @@ This leads to coarse-grained bounds, but, for example, permits user pointers to
 be used only in accessing userspace memory.
 For pure-capability (CheriABI) processes, user pointer types originate as
 capabilities, and are simply propagated as necessary.
-This approach is moderately disruptive of the kernel source code: While there
+This approach is moderately disruptive of the kernel source code: while there
 are few structural changes, user-originated pointers are manually annotated
 with \uucap{} throughout.
 
@@ -420,9 +420,9 @@ capability pointers rather than integer pointers such as
 \psnote{Apart from that??}
 \psnote{[limited/weak] ?}
 However, support for capabilities is generally weak within the runtime.
-For example, we have not implemented a \ccode{malloc\_c()} variant that would
-return a capability, implement alignment and padding taking into account
-capability bounds imprecision, or implement temporal memory safety.
+As examples, we have not implemented a \ccode{malloc\_c()} variant that would
+return a capability while accounting for alignment, padding, and
+capability bounds imprecision, nor have we endeavoured to implement temporal memory safety.
 \psnote{hard to parse the latter parts of the preceding sentence}
 \rwnote{Possibly now improved?}
 \jhbnote{I think it is confusing to mention \ccode{malloc\_c()} this
@@ -476,6 +476,8 @@ of capabilities -- e.g., when accessing bounded arrays in the heap.
 \dcnote{It feels quite dangerous to have a single sentence about the
 recommended way of doing things and a long document about the not-recommended
 way.}
+\nwfnote{Even if we've cited it recently, this is probably a good time to
+emphatically point people at the right way~\cite{UCAM-CL-TR-947}.}
 
 \section{Pointer implementation}
 
@@ -966,6 +968,13 @@ Specific limitations by protection type are:
     of revocation, DDC (which encompases the C heap, stack, and image), is a
     single object and so no object reachable from the hybrid heap / stack /
     globals will ever be revoked.}
+  \nwfnote{Well, a capability held within DDC that points to a revokable IPC
+    object (i.e., an object not within DDC) is still subject to revocation
+    as per usual.  I'd phrase it as ``subobjects of DDC'' will not be revoked
+    soundly even if revocation is attempted.  In a sense DDC and the
+    VMMAP-bearing caps handed to malloc are analogous here: malloc would be
+    free (hah) to reconstruct a pointer to a free/revoked region incorrectly,
+    but we (endeavour to) ensure that it doesn't.}
 \end{itemize}
 
 As a result of these limitations, privilege minimization in the language
