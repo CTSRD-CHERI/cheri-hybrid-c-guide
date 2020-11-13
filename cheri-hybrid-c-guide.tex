@@ -283,6 +283,7 @@ This report describes:
   code, as well as implied pointers in the language runtime;
 \item The impact of \hybridCOrCpp{} on C-language types, casts and the address-of operator
   (\ccode{\&});
+\item Examples of \hybridCOrCpp{} in current use;
 \item A number of inherent and practical implications to \hybridCOrCpp{}; and
 \item Further reading relating to CHERI and \COrCpp{} on CHERI.
 \end{itemize}
@@ -322,9 +323,7 @@ on our GitHub repository for the report:
 
 \url{https://github.com/CTSRD-CHERI/cheri-hybrid-c-guide}
 
-\section{Objective and use cases for \hybridCOrCpp{}}
-
-\psnote{somewhere early on, maybe here, this document should be saying what code has been ported to (or implemented from scratch) in Hybrid}
+\section{Objective of \hybridCOrCpp{}}
 
 The aim of \hybridCOrCpp{} is to allow programs to be written using
 conventional integer pointers throughout their implementations, and yet also
@@ -339,6 +338,378 @@ temporal safety in most use cases, it allows conventional
 integer-pointer-based code to interact usefully with capabilities in a number
 of specific use cases.
 \psnote{that seems to underplay what one can get from hybrid -- surely one can say something about ``specific protections'' or ``protection in specific ways'' or something?}
+We explore existing code corpora for \hybridCOrCpp{} in further detail in
+Section~\ref{section:hybrid-c-examples}.
+These include the hybrid CheriBSD userspace and hybrid userspace examples.
+
+\section{Pointer implementation}
+
+We are concerned with pointers arising from two parts of the C implementation:
+
+\begin{description}
+\item[Explicit pointers] are pointers visible in the program source.
+  These include declared pointers taken to local, global, or thread-local
+  variables, to functions, or pointers to returned heap allocations.
+  In \hybridCOrCpp{}, these pointers will be implemented using capabilities
+  only if specifically annotated.
+
+\item[Implied pointers] are those used by the language runtime and generated
+  code to manage the language implementation itself.
+  This includes the stack pointer, program counter and return addresses, PLT
+  entries, vtable pointers, and GOT/captable pointers.
+  \psnote{wonder whether it'd be useful in this document to briefly explain what each of these latter three are for, to make it useful for C/C++ programmers and semanticists who aren't familiar with these internals?}
+  \psnote{actually, maybe it's worth (time permitting) explaining all these, including side-by-side how they work in vanilla, pure-cap, and hybrid?}
+  In \hybridCOrCpp{}, these pointers will be implemented using integers,
+  although in some cases
+\psnote{probably we should be explicit here about which and why, not just ``eg of the GOT''}
+  underlying data structures will be replicated to
+  provide capability versions of them -- e.g., of the GOT.
+\end{description}
+
+\noindent
+In \hybridCOrCpp{}, pointers may be implemented using two underlying
+architectural types:
+
+\begin{description}
+\item[Integer pointers] are pointers implemented as integer addresses.
+  Storage size and alignment will be the architectural address size (e.g.,
+  64 bits on a 64-bit architecture in a 64-bit process environment).
+
+  Generated code will utilize integer load and store instructions to access
+  variables of these types, and dereference them using integer-relative
+  instructions.
+
+  Explicit pointers will be of this type by default.
+  Implied pointers will be of this type if required by the existing ABI.
+  \arnote{Should we explain what we mean by explicit and implied, or assume readers have read other documents already?}
+
+\item[Capability pointers] are pointers implemented using capabilities.
+  Storage size and alignment will be the architectural capability size (e.g.,
+  128 bits on a 64-bit architecture in a 64-bit process environment\psnote{, with the tag bit for each capability-sized-and-aligned unit of memory maintained by the hardware in non-addressable memory}).
+
+  Generated code will utilize capability load and store instructions to access
+  variables of these types, and dereference them using capability-relative
+  instructions.
+
+  Explicit pointers will only be of this type if specifically annotated in the
+  program source.
+  Implied pointers may be of this type if it does not harm the ABI; some
+  implied pointers may be replicated in order to allow both types to be used
+  (e.g., by providing a GOT and a captable).
+\end{description}
+
+In the following sections, we consider the implementation of pointers in
+C/\cpp{} source code and also the language runtime.
+
+\subsection{Explicit pointers}
+
+Explicit pointers can be implemented as capability pointers in several ways:
+
+\begin{description}
+\item[Pointers qualified with \uucap{}]
+  To implement an explicit pointer as a capability in \hybridCOrCpp{}, the
+  qualifier \uucap{} is used on a pointer type
+  For example, \ccode{char * \_\_capability c} declares a capability pointer
+  to a \ccode{char}.
+  The \uucap qualifier can also be applied to \cpp references (e.g., \ccode{char \& \_\_capability} to declares a capability reference to \ccode{char}).
+  Unqualified explicit pointers and \cpp references will be implemented as integer addresses.
+
+
+\psnote{The following two items seem to be a radical shift of focus, from what hybrid currently is to (free-wheeling or prototyped?  unclear) speculation about what one could do instead/aswell.  Suggest either skipping or very clearly labelling with their actual status}
+  
+\item[Other pointers that have no ABI impact]
+  \futurevariant{There are opportunities to compile code using capability
+  pointers, where using a different underlying architectural type has no
+  impact on the ABI exposed (or potentially exposed) to other code.
+  For example, unescaped pointers to local variables may be suitable for
+  capability-pointer compilation.
+  \arnote{We probably don't want to do this. As David mentions it's unlikely to be beneficial for security.
+  Furthermore, not adding bounds to unescaped pointers has resulted in a huge performance improvement for purecap code due to reduced stack spills, so we probably don't want to introduce this for hybrid.}
+  Other constraints may exist, such as the non-embedding of the pointer's size
+  in escaped values.
+  Further research is required to evaluate the viability and usefulness of
+  this potential approach.}
+  \dcnote{There's also research needed on the value of this.  The set of things
+  described above looks similar to the set that can be statically
+        verified as safe and so does not benefit from capabilities.  This
+        becomes a lot more interesting in the context of whole-program (or
+        whole-library) analysis, where the complexity of verifying the safety
+        properties grows much faster than escape analysis.}
+
+\item[Other pointers that have a policy-constrained ABI impact]
+  \futurevariant{There is also the opportunity to have a policy-determined
+  impact on ABI, in which an explicit policy might allow compilation of
+  larger portions of code in a manner that more substantively impacts ABI.
+  Such policies might explicitly identify function types and data structures
+  (e.g., public APIs) with public ABI guarantees while permitting substantial
+  variation in other compiled code (e.g., private APIs).
+  Further research is required to evaluate the viability and usefulness of
+  this potential approach.}
+\end{description}
+
+\rwnote{Do we want a new item, ``Implied pointers that have a limited impact
+  on ABI''?  E.g., to capture the CRA case?}
+
+\rwnote{Have we gotten too researchy here, and we should just stick to the
+  simple story that only those tagged with \uucap{} matter.
+  I seem to recall that we also have a pragma for managing the default
+  interpretation to be used in header files shared between interpretations...}
+
+\subsection{Implied pointers}
+
+We consider three cases:
+
+\begin{description}
+\item[Implied pointers critical to the ABI]
+  Wherever the ABI dictates that implied pointers must be integer pointers,
+  that will be maintained by \hybridCOrCpp{} code generation and in the
+  language runtime.
+  For example, the hybrid ABI requires that the stack pointer be an integer
+  pointer.
+  \dcnote{This isn't clear to me as a general point.  An ISA that had an
+    architectural stack pointer could have a stack capability and define the
+    legacy ops that write an integer to the stack pointer to set the address.
+    We couldn't do that on MIPS because the stack pointer is non-architectural
+    but it would be possible on ARM.}
+
+\item[Implied pointers invisible to the ABI]
+  In some cases, implied pointers may be implemented as capability pointers
+  without impacting the ABI.
+
+\psnote{again flag more clearly that this is speculative?  The blue colour alone isn't doing it for me}
+  
+  \futurevariant{For example, hybrid code could use a capability return address
+  rather than an integer return address to provide pointer provenance validity
+  for the return address, even if not tight bounds, as the return address is
+  not part of the ABI to other functions.}
+
+  \jrtcnote{\cfunc{\_\_builtin\_return\_address} does leak these implied
+  pointers to some code, and it has implications for things like libunwind, so
+  it does affect the ABI. Also the kernel needs to know to put a capability in
+  CRA in order for signal handlers to be able to return to \cfunc{sigcode}.
+  There's a lot of subtlety here that needs to be captured.}
+
+  \rwnote{I'd been pondering whether the ABI might allow us to use a return
+  capability, but in which unwind/etc only looked at the lower 64 bits...  And
+  I suppose the builtin could be polymorphic.  But signals are indeed a messy
+  issue.
+  Is there a better example we could give?}
+
+  \jhbnote{Not as true for MIPS, but on many architectures, the
+    position of the saved PC and frame pointer in the stack is part
+    of the ABI (if you compile with -fno-omit-frame-pointer as
+    FreeBSD's kernel does, and as all of illumos does).  DDB in the
+    kernel relies on this convention for stack unwinding even on
+    non-x86 platforms like RISC-V.  DTrace also relies on it (so for
+    working userspace dtrace FBT probes I think you have to compile
+    everything with -fno-omit-frame-pointer).  My knee-jerk reaction
+    is that the RA is really part of the ABI in practice.}
+
+\item[Implied pointers that can be replicated as integer and capability
+  pointers]
+  In other cases, implied pointers may be replicated, with a full set of
+  integer pointer variants provided for the existing ABI, but additional
+  capability pointer variants provided for hybrid code.
+
+  \futurevariant{For example, a separate captable could be provided,
+  replicating the set of entries in the existing GOT, to allow capability
+  pointers taken to global variables to have desired bounds and permissions.}
+
+  \morellovariant{In the Morello ABI, capability pointers taken to globals
+  pick up bounds and other metadata from constant pools of capabilities,
+  effectively small per-function captables manually created by the compiler.}
+
+  \psnote{really the first Morell-specific thing?}
+  \psnote{the document has never (as far as I noticed) actually explained what a captable \emph{is}. probably that should have been much earlier}
+  \jhbnote{I'm actually tempted to stop calling captables their own
+    name and just treat them as GOTs and that a GOT can contain
+    entries of various types: integer addresses, integer indices
+    (think TLS DSO index), and capabilities.  The compiler/linker are
+    responsible for avoiding type confusion by ensuring all uses and
+    relocations for a given GOT entry use the same type.  I think on
+    CHERI-MIPS at least we don't yet have a merged GOT and actually
+    have separate sections.  I'm not sure it is required to have
+    separate sections on other architectures which use .pltrel and
+    jump slot relocations.}
+
+\end{description}
+
+\section{Types, casts, and addresses taken}
+
+\psnote{wasn't the preceding section also all about \hybridCOrCpp{}?}
+
+\psnote{somewhere this document should explain the (library or built-in) operations that one can do in hybrid on capabilities, what arithmetic one can do on them, what comparison does, etc., including concrete syntax (either general or by example)}
+
+The C and \cpp{} languages are generally unchanged by the introduction of
+\hybridCOrCpp{} support, except where specifically impacted by the use or
+implementation of the capability pointer type.
+Capability pointers will generally follow the rules, alignment requirements,
+integer conversions, provenance, and so on laid out in the \textit{CHERI C/C++
+Programming Guide}~\cite{UCAM-CL-TR-947}.
+However, substantially different choices are made regarding integer types,
+integer-pointer casts, and the address-taken operator, as described in this section.
+
+\subsection{C-language types}
+
+In \hybridCOrCpp{}, all existing language types retain their current uses in
+order to maximize compatibility, including \cintptrt, \cuintptrt, and
+\maxalignt.
+This is inconvenient with respect to capability pointer types, which cannot
+be stored (without a downcast to an integer pointer type, losing capability
+metadata) in \cintptrt.
+A new type, \cintcapt, has been introduced, which is able to hold capability
+pointer types -- but will be used only by source code that is capability
+aware.
+\dcnote{Signed and unsigned variants (uintcap\_t)}
+
+\subsection{Casts from integer pointers to capability pointers}
+
+Casts from integer pointers to capability pointers will silently \rwnote{is
+this still true?} generate a capability pointer value derived from the
+Default Data Capability (DDC).
+As a result, they will generally have highly permissive bounds and
+permissions, which should be refined for the capability to offer spatial,
+and not just referential, protection.
+\psnote{I'm guessing the reader will have no idea what ``referential protection'' means...}
+
+For example, if an integer pointer to a heap allocation is to be exposed to
+co-process IPC using a capability, the code performing a cast to a capability
+pointer will typically also need to set bounds and permissions suitably.
+This use case may also require stronger alignment for the heap allocation than
+the existing heap allocator provides, as the allocator will be unaware of
+capability bounds precision requirements.
+\psnote{give example code showing how this setting of bounds and permissions can be done?}
+
+Because of these risks, CHERI Clang/LLVM will always generate a warning in
+the absence of use of the new \ccode{\_\_cheri\_addr} qualifier on the target
+type of a cast.
+\bdnote{I think this is supposed to be \ccode{\_\_cheri\_tocap}. \ccode{\_\_cheri\_addr} is for capability to non-pointer integrer cases.}
+
+\psnote{introducing \ccode{\_\_cheri\_addr} in passing -- better to be more explicit?}
+
+\rwnote{Give examples of warnings?}
+
+\nwfnote{Recommend \ccode{cheri\_address\_set}?}
+
+\bdnote{We rarely use \_\_cheri\_tocap and instead use macros like \ccode{\_\_USER\_CAP} that perform some validation.  In the case of \ccode{\_\_USER\_CAP} we have a \ccode{\_\_USER\_CFROMPTR} that derives
+from the process's DDC and (critically) ensures that sentinel values near (signed) zero are NULL-derived. We probably need to mention this here
+or above when we talk about syscall arguments.}
+
+\jhbnote{I think the takeaway about \ccode{\_\_USER\_CAP} is that it
+  is not using language features (i.e. casts as being described here),
+  but instead is a separate DSL built on top of C for use in the
+  kernel.  I do think it is very much worth calling out that in the
+  kernel, using DDC to derive caps for user addresses is almost always
+  wrong, and that you want to be using the user's DDC explicitly
+  instead.  For the purposes of this section about casts, simply
+  talking about \ccode{\_\_cheri\_tocap} is ok.  However, we are missing an
+  entire subsection here for ``Casts from capability to integer address``
+  which needs to talk about \ccode{\_\_cheri\_addr}.}
+ 
+\subsection{Casts from capability pointers to integer pointers}
+
+\psnote{terminology: it's pretty easy to misread ``integer pointer'' as ``pointer to integer'', as that's normal C usage.  Maybe we can find a different term?  ``machine-word pointer'' ??}
+
+Casts from capability pointers to integer pointers will take on a value that
+is the integer difference between the address of the capability pointer and
+the address of DDC.
+These casts likewise discard capability metadata, preventing not only spatial
+protection, but also referential protection.
+
+Because of these risks, CHERI Clang/LLVM will always generate an error in
+the absence of use of the new \ccode{\_\_cheri\_fromcap} qualifier on the
+target type of a cast.
+
+\rwnote{Say something about the associated built-ins?}
+
+\rwnote{Give examples of warnings?}
+
+\dcnote{We used to have instructions for this.  The goal for systems without
+that was cap -> int pointer casts would do a CTestSubset, CSub, CCMOV sequence,
+so casting from a not-in-DDC cap to an integer pointer would give either a
+valid pointer or null.  The programmer invariant is that either the resulting
+pointer can be used to access the entire object, or it is a detectable null.
+The LLVM IR language reference now include this guarantee for address space
+casts.}
+
+\bdnote{In the CheriBSD kernel \ccode{\_\_cheri\_fromcap} is commonly used
+for kernel-addresses that happen to be stored in capabilities,
+but probably should be replaced by a macro that ensures that this is true
+on systems where DDC includes userspace addresses (all of them today).}
+
+\subsection{Address-of operator (\&)}
+
+The \ccode{\&} operator takes the address of a C or \cpp{} variable, and
+returns a pointer of a corresponding type.
+We consider three approaches:
+
+\begin{description}
+\item[Integer pointer interpretation] is the approach taken by CHERI
+  Clang/LLVM.
+  In this approach, \ccode{\&} returns an integer pointer type, the default
+  pointer type in \hybridCOrCpp{}.
+  If then assigned to a capability pointer, the resulting bounds and
+  permissions are derived from the Default Data Capability (DDC).
+
+\nwfnote{Does that mean that I can't write something like...  \ccode{struct \{
+int x; int y; \} * \_\_capability sp; int * \_\_capability xp = \&sp->x;} and
+have it work unless \ccode{sp} is a subset of DDC?  I'd sort of expect \& to be
+polymorphic in its argument, even if it isn't polymorphic in its return type as
+given next.}
+\bdnote{\&<something of capability type> remains a capability. This requires clarification.}
+
+\item[Polymorphic \ccode{\&}] \morellovariant{is the approach taken by Morello
+  Clang/LLVM.
+  In this approach, \ccode{\&} is polymorphic: if assigned to a capability
+  pointer, the resulting bounds and permissions are those of the underlying
+  type.}
+  
+  \rwnote{Or are they of the underlying storage?}
+\psnote{uneasy with the idea that ``the underlying type'' has unambiguous bounds and permissions... esp. given C's handling of arrays.  Spell out what this means?}
+  
+  \dcnote{Is this equivalent to making it return a capability and silencing
+    warnings if you cast that value to an integer pointer without storing it?}
+
+\item[Qualified \ccode{\&}]
+  \futurevariant{This approach would qualify or modify the \ccode{\&} operator
+  itself, perhaps in the form \ccode{\_\_capability \&}.
+  This approach would avoid polymorphic behavior with the effect of the
+  \ccode{\&} operator having different behavior based on others of a complex
+  expression, or drawn from the type of the left-hand side of an assignment.
+  Currently, no similar constructs to qualify or modify operators exist in the C
+  language.}
+\end{description}
+
+Another potential approach, avoided in our work to date, is to support a
+silent downcast from a capability-pointer typed \ccode{\&} operator.
+In general, we feel strongly that casts from capability-pointer types to
+integer-pointer types should generate warnings (or even errors) due to the
+potential for lost protection information and confusing outcomes.
+In large existing corpora of \hybridCOrCpp{} code, large numbers of warnings
+would be produced
+\psnote{by what exactly? by having a silent downcast??}
+, and likely substantially distract from the goal of
+producing safe code.
+
+Regardless of the approach taken, it is important that the compiler warn if
+there is a moderate likelihood that an assignment into a capability pointer
+might contain default or too-broad bounds compared to the expectation of the
+programmer.
+Here, both the current CHERI Clang/LLVM and potential future CHERI Clang/LLVM
+approaches require explicit warnings be generated, whereas the Morello
+approach should avoid surprise at the cost of potentially problematic C
+behavior.
+\psnote{That last sentence is structured as an opposition -- but warnings and avoiding surprise seem consonant...}
+
+\dcnote{This section is missing any description of C++ references.  I recall
+that there were some fun corner cases here, for example if you have a
+cap-pointer to an object (which may not be in DDC), what is the type of a
+reference to that reference?}
+
+\section{Code examples}
+\label{section:hybrid-c-examples}
+
+In this section, we consider several current uses of \hybridCOrCpp{}.
 
 \subsection{Hybrid CheriBSD kernel}
 
@@ -479,377 +850,6 @@ way.}
 \nwfnote{Even if we've cited it recently, this is probably a good time to
 emphatically point people at the right way~\cite{UCAM-CL-TR-947}.}
 
-\section{Pointer implementation}
-
-In \CHERIhybridCOrCpp{}, pointers may be implemented using two underlying
-architectural types:
-
-\begin{description}
-\item[Integer pointers] are pointers implemented as integer addresses.
-  Storage size and alignment will be the architectural address size (e.g.,
-  64 bits on a 64-bit architecture in a 64-bit process environment).
-
-  Generated code will utilize integer load and store instructions to access
-  variables of these types, and dereference them using integer-relative
-  instructions.
-
-  Explicit pointers will be of this type by default.
-  Implied pointers will be of this type if required by the existing ABI.
-  \arnote{Should we explain what we mean by explicit and implied, or assume readers have read other documents already?}
-
-\item[Capability pointers] are pointers implemented using capabilities.
-  Storage size and alignment will be the architectural capability size (e.g.,
-  128 bits on a 64-bit architecture in a 64-bit process environment\psnote{, with the tag bit for each capability-sized-and-aligned unit of memory maintained by the hardware in non-addressable memory}).
-
-  Generated code will utilize capability load and store instructions to access
-  variables of these types, and dereference them using capability-relative
-  instructions.
-
-  Explicit pointers will only be of this type if specifically annotated in the
-  program source.
-  Implied pointers may be of this type if it does not harm the ABI; some
-  implied pointers may be replicated in order to allow both types to be used
-  (e.g., by providing a GOT and a captable).
-\end{description}
-
-In the following sections, we consider the implementation of pointers in
-C/\cpp{} source code and also the language runtime.
-
-\subsection{Pointers in source code, code generation, and the runtime}
-
-\dcnote{This definition would benefit from being much earlier.  The doc
-currently talks about implied pointers a lot before it ever defines them and
-the definition is obvious only to someone who has spent a nontrivial amount of
-time hacking on a C/C++ runtime.}
-We are concerned with pointers arising from two parts of the C implementation:
-
-\begin{description}
-\item[Explicit pointers] are pointers visible in the program source.
-  These include declared pointers taken to local, global, or thread-local
-  variables, to functions, or pointers to returned heap allocations.
-  In \hybridCOrCpp{}, these pointers will be implemented using capabilities
-  only if specifically annotated.
-
-\item[Implied pointers] are those used by the language runtime and generated
-  code to manage the language implementation itself.
-  This includes the stack pointer, program counter and return addresses, PLT
-  entries, vtable pointers, and GOT/captable pointers.
-  \psnote{wonder whether it'd be useful in this document to briefly explain what each of these latter three are for, to make it useful for C/C++ programmers and semanticists who aren't familiar with these internals?}
-  \psnote{actually, maybe it's worth (time permitting) explaining all these, including side-by-side how they work in vanilla, pure-cap, and hybrid?}
-  In \hybridCOrCpp{}, these pointers will be implemented using integers,
-  although in some cases
-\psnote{probably we should be explicit here about which and why, not just ``eg of the GOT''}
-  underlying data structures will be replicated to
-  provide capability versions of them -- e.g., of the GOT.
-\end{description}
-
-\subsection{Explicit pointers}
-
-Explicit pointers can be implemented as capability pointers in several ways:
-
-\begin{description}
-\item[Pointers qualified with \uucap{}]
-  To implement an explicit pointer as a capability in \hybridCOrCpp{}, the
-  qualifier \uucap{} is used on a pointer type
-  For example, \ccode{char * \_\_capability c} declares a capability pointer
-  to a \ccode{char}.
-  The \uucap qualifier can also be applied to \cpp references (e.g., \ccode{char \& \_\_capability} to declares a capability reference to \ccode{char}).
-  Unqualified explicit pointers and \cpp references will be implemented as integer addresses.
-
-
-\psnote{The following two items seem to be a radical shift of focus, from what hybrid currently is to (free-wheeling or prototyped?  unclear) speculation about what one could do instead/aswell.  Suggest either skipping or very clearly labelling with their actual status}
-  
-\item[Other pointers that have no ABI impact]
-  \futurevariant{There are opportunities to compile code using capability
-  pointers, where using a different underlying architectural type has no
-  impact on the ABI exposed (or potentially exposed) to other code.
-  For example, unescaped pointers to local variables may be suitable for
-  capability-pointer compilation.
-  \arnote{We probably don't want to do this. As David mentions it's unlikely to be beneficial for security.
-  Furthermore, not adding bounds to unescaped pointers has resulted in a huge performance improvement for purecap code due to reduced stack spills, so we probably don't want to introduce this for hybrid.}
-  Other constraints may exist, such as the non-embedding of the pointer's size
-  in escaped values.
-  Further research is required to evaluate the viability and usefulness of
-  this potential approach.}
-  \dcnote{There's also research needed on the value of this.  The set of things
-  described above looks similar to the set that can be statically
-        verified as safe and so does not benefit from capabilities.  This
-        becomes a lot more interesting in the context of whole-program (or
-        whole-library) analysis, where the complexity of verifying the safety
-        properties grows much faster than escape analysis.}
-
-\item[Other pointers that have a policy-constrained ABI impact]
-  \futurevariant{There is also the opportunity to have a policy-determined
-  impact on ABI, in which an explicit policy might allow compilation of
-  larger portions of code in a manner that more substantively impacts ABI.
-  Such policies might explicitly identify function types and data structures
-  (e.g., public APIs) with public ABI guarantees while permitting substantial
-  variation in other compiled code (e.g., private APIs).
-  Further research is required to evaluate the viability and usefulness of
-  this potential approach.}
-\end{description}
-
-\rwnote{Do we want a new item, ``Implied pointers that have a limited impact
-  on ABI''?  E.g., to capture the CRA case?}
-
-\rwnote{Have we gotten too researchy here, and we should just stick to the
-  simple story that only those tagged with \uucap{} matter.
-  I seem to recall that we also have a pragma for managing the default
-  interpretation to be used in header files shared between interpretations...}
-
-\subsection{Implied pointers}
-
-We consider three cases:
-
-\begin{description}
-\item[Implied pointers critical to the ABI]
-  Wherever the ABI dictates that implied pointers must be integer pointers,
-  that will be maintained by \hybridCOrCpp{} code generation and in the
-  language runtime.
-  For example, the hybrid ABI requires that the stack pointer be an integer
-  pointer.
-  \dcnote{This isn't clear to me as a general point.  An ISA that had an
-    architectural stack pointer could have a stack capability and define the
-    legacy ops that write an integer to the stack pointer to set the address.
-    We couldn't do that on MIPS because the stack pointer is non-architectural
-    but it would be possible on ARM.}
-
-\item[Implied pointers invisible to the ABI]
-  In some cases, implied pointers may be implemented as capability pointers
-  without impacting the ABI.
-
-\psnote{again flag more clearly that this is speculative?  The blue colour alone isn't doing it for me}
-  
-  \futurevariant{For example, hybrid code could use a capability return address
-  rather than an integer return address to provide pointer provenance validity
-  for the return address, even if not tight bounds, as the return address is
-  not part of the ABI to other functions.}
-
-  \jrtcnote{\cfunc{\_\_builtin\_return\_address} does leak these implied
-  pointers to some code, and it has implications for things like libunwind, so
-  it does affect the ABI. Also the kernel needs to know to put a capability in
-  CRA in order for signal handlers to be able to return to \cfunc{sigcode}.
-  There's a lot of subtlety here that needs to be captured.}
-
-  \rwnote{I'd been pondering whether the ABI might allow us to use a return
-  capability, but in which unwind/etc only looked at the lower 64 bits...  And
-  I suppose the builtin could be polymorphic.  But signals are indeed a messy
-  issue.
-  Is there a better example we could give?}
-
-  \jhbnote{Not as true for MIPS, but on many architectures, the
-    position of the saved PC and frame pointer in the stack is part
-    of the ABI (if you compile with -fno-omit-frame-pointer as
-    FreeBSD's kernel does, and as all of illumos does).  DDB in the
-    kernel relies on this convention for stack unwinding even on
-    non-x86 platforms like RISC-V.  DTrace also relies on it (so for
-    working userspace dtrace FBT probes I think you have to compile
-    everything with -fno-omit-frame-pointer).  My knee-jerk reaction
-    is that the RA is really part of the ABI in practice.}
-
-\item[Implied pointers that can be replicated as integer and capability
-  pointers]
-  In other cases, implied pointers may be replicated, with a full set of
-  integer pointer variants provided for the existing ABI, but additional
-  capability pointer variants provided for hybrid code.
-
-  \futurevariant{For example, a separate captable could be provided,
-  replicating the set of entries in the existing GOT, to allow capability
-  pointers taken to global variables to have desired bounds and permissions.}
-
-  \morellovariant{In the Morello ABI, capability pointers taken to globals
-  pick up bounds and other metadata from constant pools of capabilities,
-  effectively small per-function captables manually created by the compiler.}
-
-  \psnote{really the first Morell-specific thing?}
-  \psnote{the document has never (as far as I noticed) actually explained what a captable \emph{is}. probably that should have been much earlier}
-  \jhbnote{I'm actually tempted to stop calling captables their own
-    name and just treat them as GOTs and that a GOT can contain
-    entries of various types: integer addresses, integer indices
-    (think TLS DSO index), and capabilities.  The compiler/linker are
-    responsible for avoiding type confusion by ensuring all uses and
-    relocations for a given GOT entry use the same type.  I think on
-    CHERI-MIPS at least we don't yet have a merged GOT and actually
-    have separate sections.  I'm not sure it is required to have
-    separate sections on other architectures which use .pltrel and
-    jump slot relocations.}
-
-\end{description}
-
-\section{\hybridCOrCpp{}}
-
-\psnote{wasn't the preceding section also all about \hybridCOrCpp{}?}
-
-\psnote{somewhere this document should explain the (library or built-in) operations that one can do in hybrid on capabilities, what arithmetic one can do on them, what comparison does, etc., including concrete syntax (either general or by example)}
-
-The C and \cpp{} languages are generally
-unchanged
-\psnote{``unperturbed'' has an unfortunate anthropomorphic misreading...}
-by the introduction of
-\hybridCOrCpp{} support, except where specifically impacted by the use or
-implementation of the capability pointer type.
-Capability pointers will generally follow the rules, alignment requirements,
-integer conversions, provenance, and so on laid out in the \textit{CHERI C/C++
-Programming Guide}~\cite{UCAM-CL-TR-947}.
-However, substantially different choices are made regarding integer types,
-integer-pointer casts, and the address-taken operator, as described in this section.
-
-\subsection{C-language types}
-
-In \hybridCOrCpp{}, all existing language types retain their current uses in
-order to maximize compatibility, including \cintptrt, \cuintptrt, and
-\maxalignt.
-This is inconvenient with respect to capability pointer types, which cannot
-be stored (without a downcast to an integer pointer type, losing capability
-metadata) in \cintptrt.
-A new type, \cintcapt, has been introduced, which is able to hold capability
-pointer types -- but will be used only by source code that is capability
-aware.
-\dcnote{Signed and unsigned variants (uintcap\_t)}
-
-\subsection{Casts from integer to capability pointers}
-
-Casts from integer pointers to capability pointers will silently \rwnote{is
-this still true?} generate a capability pointer value derived from the
-Default Data Capability (DDC).
-As a result, they will generally have highly permissive bounds and
-permissions, which should be refined for the capability to offer spatial,
-and not just referential, protection.
-\psnote{I'm guessing the reader will have no idea what ``referential protection'' means...}
-
-For example, if an integer pointer to a heap allocation is to be exposed to
-co-process IPC using a capability, the code performing a cast to a capability
-pointer will typically also need to set bounds and permissions suitably.
-This use case may also require stronger alignment for the heap allocation than
-the existing heap allocator provides, as the allocator will be unaware of
-capability bounds precision requirements.
-\psnote{give example code showing how this setting of bounds and permissions can be done?}
-
-Because of these risks, CHERI Clang/LLVM will always generate a warning in
-the absence of use of the new \ccode{\_\_cheri\_addr} qualifier on the target
-type of a cast.
-\bdnote{I think this is supposed to be \ccode{\_\_cheri\_tocap}. \ccode{\_\_cheri\_addr} is for capability to non-pointer integrer cases.}
-
-\psnote{introducing \ccode{\_\_cheri\_addr} in passing -- better to be more explicit?}
-
-\rwnote{Give examples of warnings?}
-
-\nwfnote{Recommend \ccode{cheri\_address\_set}?}
-
-\bdnote{We rarely use \_\_cheri\_tocap and instead use macros like \ccode{\_\_USER\_CAP} that perform some validation.  In the case of \ccode{\_\_USER\_CAP} we have a \ccode{\_\_USER\_CFROMPTR} that derives
-from the process's DDC and (critically) ensures that sentinel values near (signed) zero are NULL-derived. We probably need to mention this here
-or above when we talk about syscall arguments.}
-
-\jhbnote{I think the takeaway about \ccode{\_\_USER\_CAP} is that it
-  is not using language features (i.e. casts as being described here),
-  but instead is a separate DSL built on top of C for use in the
-  kernel.  I do think it is very much worth calling out that in the
-  kernel, using DDC to derive caps for user addresses is almost always
-  wrong, and that you want to be using the user's DDC explicitly
-  instead.  For the purposes of this section about casts, simply
-  talking about \ccode{\_\_cheri\_tocap} is ok.  However, we are missing an
-  entire subsection here for ``Casts from capability to integer address``
-  which needs to talk about \ccode{\_\_cheri\_addr}.}
- 
-\subsection{Casts from capability to integer pointers}
-
-\psnote{terminology: it's pretty easy to misread ``integer pointer'' as ``pointer to integer'', as that's normal C usage.  Maybe we can find a different term?  ``machine-word pointer'' ??}
-
-Casts from capability pointers to integer pointers will take on a value that
-is the integer difference between the address of the capability pointer and
-the address of DDC.
-These casts likewise discard capability metadata, preventing not only spatial
-protection, but also referential protection.
-
-Because of these risks, CHERI Clang/LLVM will always generate an error in
-the absence of use of the new \ccode{\_\_cheri\_fromcap} qualifier on the
-target type of a cast.
-
-\rwnote{Say something about the associated built-ins?}
-
-\rwnote{Give examples of warnings?}
-
-\dcnote{We used to have instructions for this.  The goal for systems without
-that was cap -> int pointer casts would do a CTestSubset, CSub, CCMOV sequence,
-so casting from a not-in-DDC cap to an integer pointer would give either a
-valid pointer or null.  The programmer invariant is that either the resulting
-pointer can be used to access the entire object, or it is a detectable null.
-The LLVM IR language reference now include this guarantee for address space
-casts.}
-
-\bdnote{In the CheriBSD kernel \ccode{\_\_cheri\_fromcap} is commonly used
-for kernel-addresses that happen to be stored in capabilities,
-but probably should be replaced by a macro that ensures that this is true
-on systems where DDC includes userspace addresses (all of them today).}
-
-\subsection{\& operator}
-
-The \ccode{\&} operator takes the address of a C or \cpp{} variable, and
-returns a pointer of a corresponding type.
-We consider three approaches:
-
-\begin{description}
-\item[Integer pointer interpretation] is the approach taken by CHERI
-  Clang/LLVM.
-  In this approach, \ccode{\&} returns an integer pointer type, the default
-  pointer type in \hybridCOrCpp{}.
-  If then assigned to a capability pointer, the resulting bounds and
-  permissions are derived from the Default Data Capability (DDC).
-
-\nwfnote{Does that mean that I can't write something like...  \ccode{struct \{
-int x; int y; \} * \_\_capability sp; int * \_\_capability xp = \&sp->x;} and
-have it work unless \ccode{sp} is a subset of DDC?  I'd sort of expect \& to be
-polymorphic in its argument, even if it isn't polymorphic in its return type as
-given next.}
-\bdnote{\&<something of capability type> remains a capability. This requires clarification.}
-
-\item[Polymorphic \ccode{\&}] \morellovariant{is the approach taken by Morello
-  Clang/LLVM.
-  In this approach, \ccode{\&} is polymorphic: if assigned to a capability
-  pointer, the resulting bounds and permissions are those of the underlying
-  type.}
-  
-  \rwnote{Or are they of the underlying storage?}
-\psnote{uneasy with the idea that ``the underlying type'' has unambiguous bounds and permissions... esp. given C's handling of arrays.  Spell out what this means?}
-  
-  \dcnote{Is this equivalent to making it return a capability and silencing
-    warnings if you cast that value to an integer pointer without storing it?}
-
-\item[Qualified \ccode{\&}]
-  \futurevariant{This approach would qualify or modify the \ccode{\&} operator
-  itself, perhaps in the form \ccode{\_\_capability \&}.
-  This approach would avoid polymorphic behavior with the effect of the
-  \ccode{\&} operator having different behavior based on others of a complex
-  expression, or drawn from the type of the left-hand side of an assignment.
-  Currently, no similar constructs to qualify or modify operators exist in the C
-  language.}
-\end{description}
-
-Another potential approach, avoided in our work to date, is to support a
-silent downcast from a capability-pointer typed \ccode{\&} operator.
-In general, we feel strongly that casts from capability-pointer types to
-integer-pointer types should generate warnings (or even errors) due to the
-potential for lost protection information and confusing outcomes.
-In large existing corpora of \hybridCOrCpp{} code, large numbers of warnings
-would be produced
-\psnote{by what exactly? by having a silent downcast??}
-, and likely substantially distract from the goal of
-producing safe code.
-
-Regardless of the approach taken, it is important that the compiler warn if
-there is a moderate likelihood that an assignment into a capability pointer
-might contain default or too-broad bounds compared to the expectation of the
-programmer.
-Here, both the current CHERI Clang/LLVM and potential future CHERI Clang/LLVM
-approaches require explicit warnings be generated, whereas the Morello
-approach should avoid surprise at the cost of potentially problematic C
-behavior.
-\psnote{That last sentence is structured as an opposition -- but warnings and avoiding surprise seem consonant...}
-
-\dcnote{This section is missing any description of C++ references.  I recall
-that there were some fun corner cases here, for example if you have a
-cap-pointer to an object (which may not be in DDC), what is the type of a
-reference to that reference?}
 
 \section{Limitations}
 
@@ -903,10 +903,9 @@ on), returning and managing capability properties explicitly through
 
 \subsection{Incomplete referential, spatial, and temporal safety}
 
-\psnote{Hybrid C/C++ / This ?}
-This is a relatively weak integration of CHERI support with the language and
-run-time environment offering limited memory protection only in very specific
-circumstances.
+\hybridCOrCpp{} is a relatively weak integration of CHERI support with
+the language and run-time environment offering limited memory protection only
+in very specific circumstances.
 Except where Application Programming Interfaces (APIs) have been extended to
 support explicit capability arguments or return values, pointers will not
 be protected by capability integrity, pointer provenance validity, bounds,
