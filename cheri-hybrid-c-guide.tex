@@ -134,8 +134,8 @@
 \newcommand*{\cpp}{\texorpdfstring{C\textsmaller[2]{\protect\nolinebreak[4]\hspace{-.05em}\raisebox{.45ex}{\textbf{++}}}}{C++}}
 \newcommand*{\COrCpp}{C/\cpp{}}
 \newcommand*{\purecapCOrCpp}{CHERI \COrCpp{}}
-\newcommand*{\CHERIhybridCOrCpp}{CHERI Hybrid-Capability \COrCpp{}}
 \newcommand*{\hybridCOrCpp}{Hybrid-Capability \COrCpp{}}
+\newcommand*{\CHERIhybridCOrCpp}{CHERI \hybridCOrCpp{}}
 
 \newcommand*{\CAndCpp}{C and \cpp{}}
 \newcommand*{\hybridCAndCpp}{Hybrid-Capability \CAndCpp{}}
@@ -278,6 +278,73 @@ The \textit{Introduction to CHERI} technical
 report~\cite{UCAM-CL-TR-941} also provides background material for this
 guide.
 
+\subsection{Objective of \hybridCOrCpp{}}
+
+The aim of \hybridCOrCpp{} is to allow programs to be written using
+conventional integer pointers throughout their implementations, and yet also
+to interact with capabilities via modest C-language extensions causing
+specifically annotated pointers to be implemented using capabilities.
+This is in contrast to \purecapCOrCpp{}, which implements all pointers as
+capabilities by default, and whose aim is strong referential, spatial, and
+temporal memory protection for C/\cpp{}.
+\psnote{including ``temporal'' there, unqualified, is going to be confusing.  Suggest splitting the sentence up and describing more explicitly what the current state and plausible options are w.r.t. temporal}
+While \hybridCOrCpp{} is unable to provide strong referential, spatial, or
+temporal safety in most use cases, it allows conventional
+integer-pointer-based code to interact usefully with capabilities in a number
+of specific use cases.
+\psnote{that seems to underplay what one can get from hybrid -- surely one can say something about ``specific protections'' or ``protection in specific ways'' or something?}
+We explore existing code corpora for \hybridCOrCpp{} in further detail in
+Section~\ref{section:hybrid-c-examples}.
+These include the hybrid CheriBSD userspace and hybrid userspace examples.
+
+\subsection{Example code}
+
+\hybridCOrCpp{} source code appears identical to off-the-shelf C and \cpp{}
+code, and for most intents and purposes behaves identically.
+The principal difference is that annotation of pointer types with \uucap{}
+causes pointers of those types to be implemented using architectural
+capabilities, and that various \purecapCOrCpp{} APIs are available:
+
+\begin{lstlisting}[language=C]
+#include <cheriintrin.h>
+#include <cheri.h>
+
+/*
+ * Function to convert an integer pointer into a capability pointer, setting
+ * a specific length on it.  Bounds may be imprecise if the base alignment of
+ * c is not suitable for the length, or the length is not suitably padded.
+ */
+void __capability *
+capptr_from_intptr(void *c, size_t len)
+{
+	void __capability *cap;
+
+	/*
+	 * Create a capability pointer from an integer pointer.  This
+	 * qualifier silences a compiler warning by documenting that this is
+	 * an intentional cast between pointer implementations.
+	 */
+	cap = (__cheri_tocap void *)c;
+
+	/*
+	 * Restrict bounds to (cap, cap + len) -- assuming suitable alignment
+	 * and padding.  The cheri_bounds_set_exact() API variant will return
+	 * precise bounds or throw a hardware exception.  This variant
+	 * produces "sloppy" bounds.
+	 */
+	cap = cheri_bounds_set(cap, len);
+
+	return (cap);
+}
+\end{lstlisting}
+
+\noindent
+Complete documentation of the APIs for capability management can be found in
+the \textit{\purecapCOrCpp{} Programming Guide}\cite{UCAM-CL-TR-947}.
+That document also describes properties such as imprecise bounds and the
+implications for CHERI-aware memory allocators that require precise bounds for
+spatial safety purposes.
+
 \subsection{Document structure}
 
 This report describes:
@@ -327,25 +394,6 @@ on our GitHub repository for the report:
 \smallskip
 
 \url{https://github.com/CTSRD-CHERI/cheri-hybrid-c-guide}
-
-\section{Objective of \hybridCOrCpp{}}
-
-The aim of \hybridCOrCpp{} is to allow programs to be written using
-conventional integer pointers throughout their implementations, and yet also
-to interact with capabilities via modest C-language extensions causing
-specifically annotated pointers to be implemented using capabilities.
-This is in contrast to \purecapCOrCpp{}, which implements all pointers as
-capabilities by default, and whose aim is strong referential, spatial, and
-temporal memory protection for C/\cpp{}.
-\psnote{including ``temporal'' there, unqualified, is going to be confusing.  Suggest splitting the sentence up and describing more explicitly what the current state and plausible options are w.r.t. temporal}
-While \hybridCOrCpp{} is unable to provide strong referential, spatial, or
-temporal safety in most use cases, it allows conventional
-integer-pointer-based code to interact usefully with capabilities in a number
-of specific use cases.
-\psnote{that seems to underplay what one can get from hybrid -- surely one can say something about ``specific protections'' or ``protection in specific ways'' or something?}
-We explore existing code corpora for \hybridCOrCpp{} in further detail in
-Section~\ref{section:hybrid-c-examples}.
-These include the hybrid CheriBSD userspace and hybrid userspace examples.
 
 \section{Pointer implementation}
 
