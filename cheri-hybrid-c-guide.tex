@@ -134,8 +134,12 @@
 \newcommand*{\cpp}{\texorpdfstring{C\textsmaller[2]{\protect\nolinebreak[4]\hspace{-.05em}\raisebox{.45ex}{\textbf{++}}}}{C++}}
 \newcommand*{\COrCpp}{C/\cpp{}}
 \newcommand*{\purecapCOrCpp}{CHERI \COrCpp{}}
-\newcommand*{\CHERIhybridCOrCpp}{CHERI Hybrid \COrCpp{}}
-\newcommand*{\hybridCOrCpp}{Hybrid \COrCpp{}}
+\newcommand*{\CHERIhybridCOrCpp}{CHERI Hybrid-Capability \COrCpp{}}
+\newcommand*{\hybridCOrCpp}{Hybrid-Capability \COrCpp{}}
+
+\newcommand*{\CAndCpp}{C and \cpp{}}
+\newcommand*{\hybridCAndCpp}{Hybrid-Capability \CAndCpp{}}
+\newcommand*{\CHERIhybridCAndCpp}{CHERI \hybridCAndCpp{}}
 
 \hyphenation{Free-BSD}
 \hyphenation{Free-RTOS}
@@ -193,9 +197,8 @@
 
 \psnote{looking over quickly again, 2020-11-13, this talks \emph{about} \CHERIhybridCOrCpp{} and its uses, but only sort-of tells the reader what they concretely are and how to write code -- it mentions some types and qualifiers, but it's unclear whether it describes all of them, it doesn't describe library functions manipulating capabiltiies, and it lacks examples of actual code.  For the first of those, probably it would be useful to have a section summarising all the extensions, with their syntax.}
   
-This document is an introduction to the \CHERIhybridCOrCpp{} programming
+This document is an introduction to the \CHERIhybridCAndCpp{} programming
 languages.
-\psnote{pluralised languages here, as otherwise it jars, leaving the occurrences below unchanged - the slash makes the latter sort-of-ok IMO, abeit debatable}
 \hybridCOrCpp{} allows the selective use of CHERI capabilities from within an
 otherwise unmodified, and Application Binary Interface (ABI)-compatible,
 C/\cpp{}-language code base.
