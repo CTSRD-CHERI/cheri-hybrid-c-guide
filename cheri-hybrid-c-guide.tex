@@ -100,6 +100,7 @@
 \newcommand{\cintttt}{{\ccode{int32\_t}}\xspace}
 \newcommand{\cintsft}{{\ccode{int64\_t}}\xspace}
 \newcommand{\cintcapt}{{\ccode{intcap\_t}}\xspace}
+\newcommand{\cuintcapt}{{\ccode{uintcap\_t}}\xspace}
 
 \newcommand{\uucap}{{\ccode{\_\_capability}}\xspace}
 
@@ -284,9 +285,9 @@ The aim of \hybridCOrCpp{} is to allow programs to be written using
 conventional integer pointers throughout their implementations, and yet also
 to interact with capabilities via modest C-language extensions causing
 specifically annotated pointers to be implemented using capabilities.
-This is in contrast to \purecapCOrCpp{}, which implements all pointers as
-capabilities by default, and whose aim is strong referential, spatial, and
-temporal memory protection for C/\cpp{}.
+This is in contrast to \purecapCOrCpp{}~\cite{UCAM-CL-TR-947}, which
+implements all pointers as capabilities by default, and whose aim is strong
+referential, spatial, and temporal memory protection for C/\cpp{}.
 \psnote{including ``temporal'' there, unqualified, is going to be confusing.  Suggest splitting the sentence up and describing more explicitly what the current state and plausible options are w.r.t. temporal}
 While \hybridCOrCpp{} is unable to provide strong referential, spatial, or
 temporal safety in most use cases, it allows conventional
@@ -340,25 +341,29 @@ capptr_from_intptr(void *c, size_t len)
 
 \noindent
 Complete documentation of the APIs for capability management can be found in
-the \textit{\purecapCOrCpp{} Programming Guide}\cite{UCAM-CL-TR-947}.
+the \textit{\purecapCOrCpp{} Programming Guide}~\cite{UCAM-CL-TR-947}.
 That document also describes properties such as imprecise bounds and the
 implications for CHERI-aware memory allocators that require precise bounds for
 spatial safety purposes.
 
 \subsection{Document structure}
 
-This report describes:
+This report describes how \hybridCAndCpp{}:
 
 \begin{itemize}
-\item The objectives and potential use cases for \CHERIhybridCOrCpp{};
-\item How \hybridCOrCpp{} interacts with explicit pointers in program source
-  code, as well as implied pointers in the language runtime;
-\item The impact of \hybridCOrCpp{} on C-language types, casts and the address-of operator
-  (\ccode{\&});
-\item Examples of \hybridCOrCpp{} in current use;
-\item A number of inherent and practical implications to \hybridCOrCpp{}; and
-\item Further reading relating to CHERI and \COrCpp{} on CHERI.
+\item Interact with explicit pointers in program source code, as well as
+  implied pointers in the language runtime and generated code;
+\item Affect standard C-language types (such as \cintptrt{}), casts, and the
+  address-of operator (\ccode{\&});
+\item Are used in our current larger code corpora, such as CheriBSD's
+  CheriABI system-call layer~\cite{davis2019:cheriabi}; and
+\item Suffer from a number of limitations causing us to recommend its use
+  only in very specific use cases.
 \end{itemize}
+
+\noindent
+We also recommend further reading in the form of several of our papers and
+technical reports.
 
 \subsection{Status of this document}
 
@@ -409,7 +414,8 @@ We are concerned with pointers arising from two parts of the C implementation:
 \item[Implied pointers] are those used by the language runtime and generated
   code to manage the language implementation itself.
   This includes the stack pointer, program counter and return addresses, PLT
-  entries, vtable pointers, and GOT/captable pointers.
+  entries, vtable pointers, GOT/captable pointers, and the \cpp{}
+  \ccode{this} pointer.
   \psnote{wonder whether it'd be useful in this document to briefly explain what each of these latter three are for, to make it useful for C/C++ programmers and semanticists who aren't familiar with these internals?}
   \psnote{actually, maybe it's worth (time permitting) explaining all these, including side-by-side how they work in vanilla, pure-cap, and hybrid?}
   In \hybridCOrCpp{}, these pointers will be implemented using integers,
@@ -437,7 +443,9 @@ architectural types:
 
 \item[Capability pointers] are pointers implemented using capabilities.
   Storage size and alignment will be the architectural capability size (e.g.,
-  128 bits on a 64-bit architecture in a 64-bit process environment\psnote{, with the tag bit for each capability-sized-and-aligned unit of memory maintained by the hardware in non-addressable memory}).
+  128 bits on a 64-bit architecture in a 64-bit process environment, with the
+  tag bit for each capability-sized-and-aligned unit of memory maintained by
+  the hardware in non-addressable memory).
 
   Generated code will utilize capability load and store instructions to access
   variables of these types, and dereference them using capability-relative
@@ -588,8 +596,6 @@ We consider three cases:
 
 \section{Types, casts, and addresses taken}
 
-\psnote{wasn't the preceding section also all about \hybridCOrCpp{}?}
-
 \psnote{somewhere this document should explain the (library or built-in) operations that one can do in hybrid on capabilities, what arithmetic one can do on them, what comparison does, etc., including concrete syntax (either general or by example)}
 
 The C and \cpp{} languages are generally unchanged by the introduction of
@@ -609,10 +615,9 @@ order to maximize compatibility, including \cintptrt, \cuintptrt, and
 This is inconvenient with respect to capability pointer types, which cannot
 be stored (without a downcast to an integer pointer type, losing capability
 metadata) in \cintptrt.
-A new type, \cintcapt, has been introduced, which is able to hold capability
-pointer types -- but will be used only by source code that is capability
-aware.
-\dcnote{Signed and unsigned variants (uintcap\_t)}
+New types, \cintcapt and \cuintcapt, have been introduced, which are able to
+hold capability pointer types -- but will be used only by source code that is
+capability aware.
 
 \subsection{Casts from integer pointers to capability pointers}
 
@@ -1112,9 +1117,6 @@ includes greater implementation detail~\cite{UCAM-CL-TR-932}:
 \section{Acknowledgements}
 
 \rwnote{Update feedback acknowledgments here.}
-
-\rwnote{Add authors of CHERI C/C++ Programming Guide who don't end up being
-  authors on this document.}
 
 We gratefully acknowledge the helpful feedback from our colleagues, including
 Ruben Ayrapetyan, Silviu Baranga, and Kevin Brodsky.
