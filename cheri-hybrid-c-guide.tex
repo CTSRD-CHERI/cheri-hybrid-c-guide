@@ -150,8 +150,8 @@
 \hyphenation{Web-Kit}
 \hyphenation{Postgre-SQL}
 
-\title{Review Draft: \\
-  \CHERIhybridCOrCpp{} Programming Guide \\
+\title{\CHERIhybridCOrCpp{} \\
+  Programming Guide \\
   (DRAFT)}
 \author{Robert~N.~M.~Watson$^*$,
     Alexander~Richardson$^*$,
@@ -429,7 +429,8 @@ We are concerned with pointers arising from two parts of the \COrCpp implementat
   provide capability versions of them -- e.g., of the GOT.
 \end{description}
 
-In \CHERIhybridCOrCpp{}, explicit and implied pointers may be implemented using two underlying
+\noindent
+In \hybridCOrCpp{}, explicit and implied pointers are implemented using two underlying
 architectural types:
 
 \begin{description}
@@ -461,6 +462,7 @@ architectural types:
   (e.g., by providing a GOT and a captable).
 \end{description}
 
+\noindent
 In the following sections, we consider the implementation of pointers in
 C/\cpp{} source code and also the language runtime.
 
@@ -468,57 +470,26 @@ C/\cpp{} source code and also the language runtime.
 
 \subsection{Explicit pointers}
 
-Explicit pointers can be implemented as capability pointers in several ways:
+To implement an explicit pointer as a capability in \hybridCOrCpp{}, use the
+qualifier \uucap{} on a pointer type.
+The following code excerpt declares a capability pointer to a \ccode{char}:
 
-\begin{description}
-\item[Pointers qualified with \uucap{}]
-  To implement an explicit pointer as a capability in \hybridCOrCpp{}, the
-  qualifier \uucap{} is used on a pointer type
-  For example, \ccode{char * \_\_capability c} declares a capability pointer
-  to a \ccode{char}.
-  The \uucap qualifier can also be applied to \cpp{} references (e.g., \ccode{char \& \_\_capability} to declares a capability reference to \ccode{char}).
-  Unqualified explicit pointers and \cpp{} references will be implemented as integer addresses.
+\begin{lstlisting}[language=C]
+char * __capability c;
+\end{lstlisting}
 
+\noindent
+The \uucap qualifier can also be applied to \cpp{} references.
+For example, the following code excerpt declares a capability reference to a
+\ccode{char}:
 
-\psnote{The following two items seem to be a radical shift of focus, from what hybrid currently is to (free-wheeling or prototyped?  unclear) speculation about what one could do instead/aswell.  Suggest either skipping or very clearly labelling with their actual status}
-  
-\item[Other pointers that have no ABI impact]
-  \futurevariant{There are opportunities to compile code using capability
-  pointers, where using a different underlying architectural type has no
-  impact on the ABI exposed (or potentially exposed) to other code.
-  For example, unescaped pointers to local variables may be suitable for
-  capability-pointer compilation.
-  \arnote{We probably don't want to do this. As David mentions it's unlikely to be beneficial for security.
-  Furthermore, not adding bounds to unescaped pointers has resulted in a huge performance improvement for purecap code due to reduced stack spills, so we probably don't want to introduce this for hybrid.}
-  Other constraints may exist, such as the non-embedding of the pointer's size
-  in escaped values.
-  Further research is required to evaluate the viability and usefulness of
-  this potential approach.}
-  \dcnote{There's also research needed on the value of this.  The set of things
-  described above looks similar to the set that can be statically
-        verified as safe and so does not benefit from capabilities.  This
-        becomes a lot more interesting in the context of whole-program (or
-        whole-library) analysis, where the complexity of verifying the safety
-        properties grows much faster than escape analysis.}
+\begin{lstlisting}[language=C]
+void myclass::mymethod(char & __capability c)
+\end{lstlisting}
 
-\item[Other pointers that have a policy-constrained ABI impact]
-  \futurevariant{There is also the opportunity to have a policy-determined
-  impact on ABI, in which an explicit policy might allow compilation of
-  larger portions of code in a manner that more substantively impacts ABI.
-  Such policies might explicitly identify function types and data structures
-  (e.g., public APIs) with public ABI guarantees while permitting substantial
-  variation in other compiled code (e.g., private APIs).
-  Further research is required to evaluate the viability and usefulness of
-  this potential approach.}
-\end{description}
-
-\rwnote{Do we want a new item, ``Implied pointers that have a limited impact
-  on ABI''?  E.g., to capture the CRA case?}
-
-\rwnote{Have we gotten too researchy here, and we should just stick to the
-  simple story that only those tagged with \uucap{} matter.
-  I seem to recall that we also have a pragma for managing the default
-  interpretation to be used in header files shared between interpretations...}
+\noindent
+Unqualified explicit pointers and \cpp{} references will be implemented as
+integer addresses.
 
 \subsection{Implied pointers}
 
