@@ -355,6 +355,7 @@ This report describes how \hybridCAndCpp{}:
   implied pointers in the language runtime and generated code;
 \item Affect standard C-language types (such as \cintptrt{}), casts, and the
   address-of operator (\ccode{\&});
+\item May support extended C and POSIX memory-management APIs;
 \item Are used in our current larger code corpora, such as CheriBSD's
   CheriABI system-call layer~\cite{davis2019:cheriabi}; and
 \item Suffer from a number of limitations causing us to recommend its use
@@ -738,6 +739,60 @@ behavior.
 that there were some fun corner cases here, for example if you have a
 cap-pointer to an object (which may not be in DDC), what is the type of a
 reference to that reference?}
+
+\section{Application Programming Interfaces (APIs)}
+
+\hybridCOrCpp{} does not mandate the introduction of new APIs beyond the
+capability inspection and manipulation APIs documented in the
+\textit{\purecapCOrCpp{} Programming Guide}~\cite{UCAM-CL-TR-947}.
+However, C runtime environments may choose to provide extended versions of
+existing library and system-call interfaces to support capability-pointer
+arguments and return values.
+Typically these will share the name of an existing API call, but append the
+\ccode{\_c} suffix.
+
+For the time being, we define extended interfaces to the heap allocator and
+POSIX memory-mapping system calls.
+In the future, other extensions will likely be desirable to support, for
+example, use of a capability-extended IPC mechanism between co-processes.
+
+\subsection{C heap allocation}
+
+\begin{description}
+\item[\ccode{malloc\_c()}] Based on the \ccode{malloc()} API, this
+  capability-enabled variant returns a capability pointer rather than integer
+  pointer to a new suitably aligned and padded heap memory allocation.
+
+\item[\ccode{free\_c()}] Based on the \ccode{free()} API, free a heap
+  allocation, taking a capability pointer rather than an integer pointer
+  argument.
+\end{description}
+
+Whether \ccode{free\_c()} supports freeing any heap allocations provided by
+the un-extended \ccode{malloc()} interface will depend on the implementation,
+and it is recommended that portable code only pass capability values returned
+by \ccode{malloc\_c()} be passed to \ccode{free\_c()}.
+This permits use of a different heap allocator implementation better able to
+implement alignment or padding requirements, or, for example, able to support
+temporal safety via capability revocation.
+
+\subsection{POSIX memory mappings}
+
+\begin{description}
+\item[\ccode{mmap\_c()}] Based on the \ccode{mmap()} API, allocate a new
+  memory mapping, possibly with an address hint, returning a capability
+  pointer rather than integer pointer.
+
+\item[\ccode{munmap\_c()}] Based on the \ccode{munmap()} API, release a
+  memory mapping, taking a capability pointer rather than an integer pointer
+  argument.
+
+\item[\ccode{madvise\_c()}, \ccode{minherit\_c()}, \ccode{mincore\_c()},
+  and \ccode{mprotect\_c()}]
+  Based on the POSIX \ccode{madvise()}, \ccode{minherit()}, \ccode{mincore()},
+  and \ccode{mprotect()} APIs, query or set the properties of memory mappings,
+  taking a capability-pointer rather than an integer-pointer argument.
+\end{description}
 
 \section{Code examples}
 \label{section:hybrid-c-examples}
