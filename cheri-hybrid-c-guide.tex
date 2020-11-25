@@ -414,18 +414,31 @@ We are concerned with pointers arising from two parts of the \COrCpp implementat
 
 \item[Implied pointers] are those used by the language runtime and generated
   code to manage the language implementation itself.
-  These implied pointers are required to implement language features such as
-  global variables, function calls, etc. Examples of implied pointers include
-  the stack pointer, program counter and return addresses, PLT
-  entries, vtable pointers, GOT/captable pointers, and the \cpp{}
-  \ccode{this} pointer.
-  \psnote{wonder whether it'd be useful in this document to briefly explain what each of these latter three are for, to make it useful for C/C++ programmers and semanticists who aren't familiar with these internals?}
-  \psnote{actually, maybe it's worth (time permitting) explaining all these, including side-by-side how they work in vanilla, pure-cap, and hybrid?}
-  In \hybridCOrCpp{}, these pointers will generally be implemented using integers,
-  although in some cases
-\psnote{probably we should be explicit here about which and why, not just ``eg of the GOT''}
-  underlying data structures will be replicated to
-  provide capability versions of them -- e.g., of the GOT.
+  These implied pointers are required to implement language features such:
+
+  \begin{itemize}
+  \item The stack using stack pointers and frame pointers,
+  \item Function invocation, function pointers, and function return using
+    Program Linkage Tables (PLTs) and return addresses,
+  \item Global variables using  the Global Offset Table (GOT) or, for
+    for pure-capability code, capability tables (captables),
+  \item Thread-local storage using per-thread TLS pointers,
+  \item \cpp{} method dispatch using vtable pointers and vtables, and
+  \item The \ccode{this} pointer.
+  \end{itemize}
+
+  In conventional code generation, these pointers are implemented using
+  integers.
+
+  In pure-capability \purecapCOrCpp{}, these pointers  are implemented using
+  capabilities.
+
+  In \hybridCOrCpp{}, these pointers are generally implemented using integers,
+  although in some cases, underlying data structures can be replicated to
+  provide capability versions.
+  For example, it is possible to provide an integer GOT alongside a
+  capability-based captable, allowing global variable access to be achieved
+  via either mechanism depending on how code is generated.
 \end{description}
 
 \noindent
