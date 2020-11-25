@@ -748,11 +748,7 @@ existing library and system-call interfaces to support capability-pointer
 arguments and return values.
 Typically these will share the name of an existing API call, but append the
 \ccode{\_c} suffix.
-
-For the time being, we define extended interfaces to the heap allocator and
-POSIX memory-mapping system calls.
-In the future, other extensions will likely be desirable to support, for
-example, use of a capability-extended IPC mechanism between co-processes.
+For the time being, we define extended interfaces to the heap allocator.
 
 \subsection{C heap allocation}
 
@@ -776,21 +772,26 @@ temporal safety via capability revocation.
 
 \subsection{POSIX memory mappings}
 
-\begin{description}
-\item[\ccode{mmap\_c()}] Based on the \ccode{mmap()} API, allocate a new
-  memory mapping, possibly with an address hint, returning a capability
-  pointer rather than integer pointer.
+In the future, extensions to the POSIX memory-mapping API will be desirable to
+support use cases such as capability-extended IPC between co-processes (see
+Section~\ref{section:co-processes}).
+However, currently POSIX APIs for memory mapping often have design mismatches
+with CHERI requirements.
 
-\item[\ccode{munmap\_c()}] Based on the \ccode{munmap()} API, release a
-  memory mapping, taking a capability pointer rather than an integer pointer
-  argument.
+For example, capability bounds imprecision may mean that the memory mapping
+created by \ccode{mmap()} is longer than the requested length -- but there is
+no way to return that new length.
+This is a particular problem because, unlike \ccode{free()}, \ccode{munmap()}
+accepts a length.
+problem for the \ccode{munmap()} API, which requires passing a length.
+Similarly, for the purposes of temporal safety, non-reuse of portions of the
+address space must be ensured globally until revocation has taken place, which
+is not a use case well supported by the current API.
 
-\item[\ccode{madvise\_c()}, \ccode{minherit\_c()}, \ccode{mincore\_c()},
-  and \ccode{mprotect\_c()}]
-  Based on the POSIX \ccode{madvise()}, \ccode{minherit()}, \ccode{mincore()},
-  and \ccode{mprotect()} APIs, query or set the properties of memory mappings,
-  taking a capability-pointer rather than an integer-pointer argument.
-\end{description}
+While incremental changes to introduce minor revisions to APIs, such as adding
+a \ccode{mmap\_c()} are possible, it will be preferable to add new APIs better
+reflecting CHERI's requirements rather than, for example, leak portions of
+address space.
 
 \section{Code examples}
 \label{section:hybrid-c-examples}
@@ -893,6 +894,7 @@ For example, to support non-DDC-derived memory mappings, new \ccode{mmap\_c}
 and \ccode{munmap\_c} system-call variants would be desirable.
 
 \subsection{Co-process IPC libraries in hybrid processes}
+\label{section:co-processes}
 
 We have been developing an experimental CHERI-based compartmentalization model
 called \textit{co-located processes} (or \textit{co-processes} for short) on
