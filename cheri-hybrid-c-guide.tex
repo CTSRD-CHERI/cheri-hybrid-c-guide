@@ -426,19 +426,6 @@ We are concerned with pointers arising from two parts of the \COrCpp implementat
   \item \cpp{} method dispatch using vtable pointers and vtables, and
   \item The \ccode{this} pointer.
   \end{itemize}
-
-  In conventional code generation, these pointers are implemented using
-  integers.
-
-  In pure-capability \purecapCOrCpp{}, these pointers  are implemented using
-  capabilities.
-
-  In \hybridCOrCpp{}, these pointers are generally implemented using integers,
-  although in some cases, underlying data structures can be replicated to
-  provide capability versions.
-  For example, it is possible to provide an integer GOT alongside a
-  capability-based captable, allowing global variable access to be achieved
-  via either mechanism depending on how code is generated.
 \end{description}
 
 \noindent
@@ -504,6 +491,17 @@ Unqualified explicit pointers and \cpp{} references will be implemented as
 integer addresses.
 
 \subsection{Implied pointers}
+
+In conventional code generation, implied pointers are implemented using
+integers.
+In pure-capability \purecapCOrCpp{}, implied pointers  are implemented using
+capabilities.
+In \hybridCOrCpp{}, these pointers are generally implemented using integers,
+although in some cases, underlying data structures can be replicated to
+provide capability versions.
+For example, it is possible to provide an integer GOT alongside a
+capability-based captable, allowing global variable access to be achieved
+via either mechanism depending on how code is generated.
 
 We consider three cases:
 
