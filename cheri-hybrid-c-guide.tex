@@ -764,9 +764,9 @@ In general, we feel strongly that casts from capability-pointer types to
 integer-pointer types should generate warnings (or even errors) due to the
 potential for lost protection information and confusing outcomes.
 In large existing corpora of \hybridCOrCpp{} code, large numbers of warnings
-would be produced
+would be produced,
 \psnote{by what exactly? by having a silent downcast??}
-, and likely substantially distract from the goal of
+and likely substantially distract from the goal of
 producing safe code.
 
 Regardless of the approach taken, it is important that the compiler warn if
