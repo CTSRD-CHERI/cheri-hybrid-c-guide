@@ -129,6 +129,7 @@
 \newcommand{\nwfnote}[1]{\note{#1}{nwf}}
 \newcommand{\dcnote}[1]{\note{#1}{David}}
 \newcommand{\jhbnote}[1]{\note{#1}{John B.}}
+\newcommand{\jbarmnote}[1]{\note{#1}{Jacob B.}}
 
 % typeset C++ sensibly
 % NB: \nolinebreak was only made robust upstream on 2019-08-20
@@ -305,6 +306,9 @@ The principal difference is that annotation of pointer types with \uucap{}
 causes pointers of those types to be implemented using architectural
 capabilities, and that various \purecapCOrCpp{} APIs are available:
 
+\jbarmnote{In the code below: \textit{"Create a capability pointer from an
+integer pointer"} looks like it forges a capability. Perhaps mention that it
+comes from the DDC.}
 \begin{lstlisting}[language=C]
 #include <cheriintrin.h>
 #include <cheri.h>
@@ -352,7 +356,9 @@ This report describes how \hybridCAndCpp{}:
 \begin{itemize}
 \item Interact with explicit pointers in program source code, as well as
   implied pointers in the language runtime and generated code;
-\item Affect standard C-language types (such as \cintptrt{}), casts, and the
+\item Affect standard C-language types (such as \cintptrt{}), casts
+\jbarmnote{It would be useful to describe C++ casts here (e.g.
+    \ccode{reinterpret\_cast}).}, and the
   address-of operator (\ccode{\&});
 \item May support extended C and POSIX memory-management APIs;
 \item Are used in our current larger code corpora, such as CheriBSD's
@@ -385,6 +391,11 @@ This document currently describes three variants of \hybridCOrCpp{}:
 \item Our current thinking on next directions for \hybridCOrCpp{}.
 
   Key differences are in \futurevariant{teal text}.
+    \jbarmnote{The colours are really nice, but is it possible to combine them
+    with a labelled side-bar of some sort? I'm not sure if these are
+    problemantic for colour-blind readers or not, but I have a short memory, and
+    the colours aren't always self-explanatory in context (a couple of pages
+    away).}
 \end{enumerate}
 
 \noindent
@@ -487,6 +498,8 @@ For example, the following code excerpt declares a capability reference to a
 void myclass::mymethod(char & __capability c)
 \end{lstlisting}
 
+\jbarmnote{How does \uucap{} interact with C++ templates?}
+
 \noindent
 Unqualified explicit pointers and \cpp{} references will be implemented as
 integer addresses.
@@ -518,6 +531,10 @@ We consider three cases:
     legacy ops that write an integer to the stack pointer to set the address.
     We couldn't do that on MIPS because the stack pointer is non-architectural
     but it would be possible on ARM.}
+  \jbarmnote{In such a system, where writing a pointer to \ccode{sp} preserves
+    the capability in \ccode{csp}, isn't the requirement "that the stack pointer
+    be an integer pointer" still met? Perhaps the greater constraint is that the
+    stack must be included in the DDC.}
 
 \item[Implied pointers invisible to the ABI]
   In some cases, implied pointers may be implemented as capability pointers
@@ -551,6 +568,14 @@ We consider three cases:
     working userspace dtrace FBT probes I think you have to compile
     everything with -fno-omit-frame-pointer).  My knee-jerk reaction
     is that the RA is really part of the ABI in practice.}
+
+  \jbarmnote{In addition to the comments above: the return address is set by the
+    caller, but used by the callee, and is therefore part of the ABI to the
+    current function. I don't understand how a return capability can be used
+    (transparently) unless the callee's prologue derives a return capability
+    from the provided return address. This should still provide some security
+    benefit over using a plain pointer. If this is the intention, it would be
+    useful to describe it explicitly.}
 
 \item[Implied pointers that can be replicated as integer and capability
   pointers]
@@ -618,7 +643,9 @@ integer-pointer casts, and the address-taken operator, as described in this sect
 
 In \hybridCOrCpp{}, all existing language types retain their current uses in
 order to maximize compatibility, including \cintptrt, \cuintptrt, and
-\maxalignt.
+\maxalignt. \jbarmnote{Is \maxalignt guaranteed to require as much alignment as
+a capability? That would be consistent with its intended use (and I hope its
+"current use"), but then why list it here?}
 This is inconvenient with respect to capability pointer types, which cannot
 be stored (without a downcast to an integer pointer type, losing capability
 metadata) in \cintptrt.
@@ -673,6 +700,7 @@ or above when we talk about syscall arguments.}
 \subsection{Casts from capability pointers to integer pointers}
 
 \psnote{terminology: it's pretty easy to misread ``integer pointer'' as ``pointer to integer'', as that's normal C usage.  Maybe we can find a different term?  ``machine-word pointer'' ??}
+\jbarmnote{Also, it leads to the name \ccode{capptr\_from\_intptr} in the earlier example, which looks like it should operate on an \cintptrt.}
 
 Casts from capability pointers to integer pointers will take on a value that
 is the integer difference between the address of the capability pointer and
@@ -758,6 +786,9 @@ arrays).}
   language.}
 \end{description}
 
+\jbarmnote{Though rarely useful, the C++ \ccode{\&} operator can be overloaded.
+How does this interact?}
+
 Another potential approach, avoided in our work to date, is to support a
 silent downcast from a capability-pointer typed \ccode{\&} operator.
 In general, we feel strongly that casts from capability-pointer types to
@@ -806,6 +837,9 @@ For the time being, we define extended interfaces to the heap allocator.
   capability-enabled variant returns a capability pointer rather than integer
   pointer to a new suitably aligned and padded heap memory allocation.
 
+\jbarmnote{Does "suitably aligned" mean that I can store a \uucap{} in it, or
+    that the returned bounds will be representable?}
+
 \item[\ccode{free\_c()}] Based on the \ccode{free()} API, free a heap
   allocation, taking a capability pointer rather than an integer pointer
   argument.
@@ -818,6 +852,14 @@ by \ccode{malloc\_c()} be passed to \ccode{free\_c()}.
 This permits use of a different heap allocator implementation better able to
 implement alignment or padding requirements, or, for example, able to support
 temporal safety via capability revocation.
+
+\jbarmnote{Is there a \ccode{realloc\_c()}? What about
+\ccode{new}/\ccode{delete}? Would they follow a scheme similar to the chosen
+scheme for \ccode{\&}? Can I use placement-\ccode{new}
+into a \uucap{} buffer?}
+
+\jbarmnote{Have variants of smart pointers (e.g. \ccode{unique\_cap}
+and \ccode{shared\_cap}) been considered?}
 
 \subsection{POSIX memory mappings}
 
@@ -846,6 +888,7 @@ address space.
 \label{section:hybrid-c-examples}
 
 In this section, we consider several current uses of \hybridCOrCpp{}.
+\jbarmnote{Is it possible for each subsection to link to source repositories?}
 
 \subsection{Hybrid CheriBSD kernel}
 
@@ -935,12 +978,19 @@ capability bounds imprecision, nor have we endeavoured to implement temporal mem
 \jhbnote{I think it is confusing to mention \ccode{malloc\_c()} this
   early as the idea of \ccode{*\_c()} variants isn't yet explained.  I
   have tried to rectify this a bit.}
+\jbarmnote{Looking at earlier comments, I wonder if this has been reordered, but
+right now it seems to disagree with section 4.1. I wonder if the issue here is
+that the suggestion in 4.1 hasn't been fully implemented for CheriBSD, but if
+so, that isn't clear here.}
 System calls are also not generally extended to support capability arguments
 or return values, limiting the useful origins for capabilities other than as
 derived from the Default Data Capability (DDC) or Program Counter Capability
 (PCC).
 For example, to support non-DDC-derived memory mappings, new \ccode{mmap\_c}
 and \ccode{munmap\_c} system-call variants would be desirable.
+\jbarmnote{These are specified in 4.2. Perhaps this should be changed to say
+"the \ccode{mmap\_c} [\ldots] APIs described in section 4.2 are not yet
+implemented in CheriBSD", or something similar.}
 
 \subsection{Co-process IPC libraries in hybrid processes}
 \label{section:co-processes}
@@ -968,6 +1018,9 @@ packages is a potentially promising area.
 
 \subsection{Hybrid language runtimes}
 
+\jbarmnote{To my knowledge, there is not yet any published code for this, so it
+sits awkwardly in the "Code examples" section. Hopefully we can fix that soon.}
+
 Managed language runtimes are a point of particular performance concern with
 CHERI, as they often have a high density of pointers in their dynamic memory
 access patterns.
@@ -986,6 +1039,27 @@ recommended way of doing things and a long document about the not-recommended
 way.}
 \nwfnote{Even if we've cited it recently, this is probably a good time to
 emphatically point people at the right way~\cite{UCAM-CL-TR-947}.}
+
+\jbarmnote{I think the recommendation at this point should be to compile the
+runtimes as pure-capability code, using the same arguments as for any C/C++
+code. In some components, as noted, capabilities may be unacceptably expensive,
+but note that alternatives will often be (32-bit) compressed references, rather
+than plain pointers. As I think David has suggested, the second (hybrid-runtime)
+suggestion seems at odds with the recommendations of the document as a whole
+(even if it's a likely stage in a larger deployment strategy).}
+
+\jbarmnote{\textit{"\ldots integer pointers [\ldots] into language-specific
+heaps reached via capabilities"} refers to compressed references, I think. It
+may be useful to use that term, since it is likely to be recognised by those
+working with runtimes, who may also assume "integer pointers" to be absolute
+64-bit pointers. Note that in CHERI variants where pointers are treated as an
+offset to DDC, pointers and simple compressed references differ only in size.}
+
+\jbarmnote{It is a convenience to think of JIT-compiled code as "pure" or
+"hybrid", but strictly neither is true if we consider these to be C/C++
+programming models. I'm not sure if that's worth clarifying or not. There is
+also no requirement for the JIT or interpreter to use the same reference
+representation as the C/C++ part of a VM (though in practice it probably will).}
 
 
 \section{Limitations}
@@ -1040,6 +1114,9 @@ on), returning and managing capability properties explicitly through
 
 \subsection{Incomplete referential, spatial, and temporal safety}
 
+\jbarmnote{This seems to repeat points made in earlier sections quite a bit. Is
+it intended as a summary?}
+
 \hybridCOrCpp{} is a relatively weak integration of CHERI support with
 the language and run-time environment offering limited memory protection only
 in very specific circumstances.
@@ -1050,11 +1127,16 @@ permissions, or monotonicity.
 For example, \cfunc{malloc} will not return pointers as capabilities with
 bounds set, and also may not align or pad allocations such that they can be
 bounded imprecisely without loss of spatial protection relative to adjacent
-allocations.
+allocations.\jbarmnote{Is there any disadvantage to doing so other than the
+padding overheads? It may ease the deployment of capabilities in existing
+software.}
 Further, the control-flow and other data structures used by C and the C
 runtime themselves do not use capabilities, and so some of the resilience to
 exploitation found in \purecapCOrCpp{}, such as return addresses and stack
-pointers implemented using capabilities, are not found in \hybridCOrCpp{}.
+pointers implemented using capabilities, are not found in
+\hybridCOrCpp{}.\jbarmnote{Reading it front to back, this seems at odds with
+section 2.2, which describes methods of retaining some resilience using return
+addresses and stack pointers as specific examples.}
 Specific limitations by protection type are:
 
 \begin{itemize}
@@ -1088,7 +1170,8 @@ Specific limitations by protection type are:
   addresses and PLT entries are implemented as integer pointers, and therefore
   lack provenance validity, bounds, and permissions.
   Explicit capability pointers will have greater protection, but only subject
-  to suitable setting of their metadata.
+  to suitable setting of their metadata.\jbarmnote{Does this need to refer to
+  PCC and \ccode{cheri\_codeptr} (as we referred to DDC earlier)?}
 
 \item Other data structures implemented by the language runtime and compiler,
   such as the stack, are also implemented using integer pointers that do not
