@@ -313,10 +313,10 @@ capabilities, and that various \purecapCOrCpp{} APIs are available:
  * a specific length on it.  Bounds may be imprecise if the base alignment of
  * c is not suitable for the length, or the length is not suitably padded.
  */
-void __capability *
+void * __capability
 capptr_from_intptr(void *c, size_t len)
 {
-	void __capability *cap;
+	void * __capability cap;
 
 	/*
 	 * Create a capability pointer from an integer pointer.  This
