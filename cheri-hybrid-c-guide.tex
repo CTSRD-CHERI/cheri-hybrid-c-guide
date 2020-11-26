@@ -721,6 +721,20 @@ have it work unless \ccode{sp} is a subset of DDC?  I'd sort of expect \& to be
 polymorphic in its argument, even if it isn't polymorphic in its return type as
 given next.}
 \bdnote{\&<something of capability type> remains a capability. This requires clarification.}
+\jrtcnote{Well, \ccode{void * \_\_capability p = ...; void * \_\_capability *q = \&p;}
+is right despite having \&<something of capability type> here. The distinction
+is around whether \ccode{\&} introduces an additional level of indirection or
+is being used to derive a new pointer that is an offset from its input.
+Indirecting-\ccode{\&} would always need the right qualifier, and is what
+currently always returns an integer pointer. Offsetting-\ccode{\&} is currently
+polymorphic (though there are some bugs around that) but in the qualified world
+becomes less clear: keeping it polymorphic would require fewer code changes,
+but would then lack consistency with the indirecting variant. I would imagine
+that \ccode{\_\_capability \&} would always be permitted as a way to offset
+into a capability regardless though because there's no good reason not to allow
+it (unless the distinction between the two wants to be made more clear, but
+\ccode{\&} is already confusing enough, especially when you start talking about
+arrays).}
 
 \item[Polymorphic \ccode{\&}] \morellovariant{is the approach taken by Morello
   Clang/LLVM.
