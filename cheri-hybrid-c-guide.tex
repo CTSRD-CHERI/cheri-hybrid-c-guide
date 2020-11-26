@@ -40,6 +40,7 @@
 \definecolor{lightgray}{gray}{0.8}
 \usepackage{xspace}
 \usepackage{xfrac}
+\usepackage{cprotect}
 
 \usepackage[nameinlink,noabbrev,capitalise]{cleveref}
 
@@ -577,6 +578,26 @@ We consider three cases:
     have separate sections.  I'm not sure it is required to have
     separate sections on other architectures which use .pltrel and
     jump slot relocations.}
+
+\cprotect\jrtcnote{This needs more discussion for \cpp{}. Consider:
+
+\begin{lstlisting}[language=C++]
+class Foo {
+  int x;
+  void set_x(int x) {
+    this->x = x;
+  }
+};
+
+Foo * __capability foo = (__cheri_tocap Foo *)new Foo;
+\end{lstlisting}
+
+Then \cxxcode{foo->x} is permissible, but \cxxcode{foo->set\_x(1)} causes
+issues, since the language requires that \cxxcode{this} be a \cxxcode{Foo *},
+but we have a \cxxcode{Foo * \_\_capability}. We currently interpret there
+being an implicit cast to \cxxcode{Foo *} in there and thus give an error, as
+should be done without additional language extensions to permit methods taking
+a capability \cxxcode{this}.}
 
 \end{description}
 
