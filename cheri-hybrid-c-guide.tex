@@ -884,6 +884,16 @@ a \ccode{mmap\_c()} are possible, it will be preferable to add new APIs better
 reflecting CHERI's requirements rather than, for example, leak portions of
 address space.
 
+\subsection{Format strings}
+
+Just as printing pointers is a useful operation, so is printing capabilities.
+In \hybridCOrCpp{}, \ccode{printf()} and its variants are extended to support
+printing capabilities with a new \ccode{\%lp} format, which behaves identically
+to the normal \ccode{\%p} format in \purecapCOrCpp{}. To support writing code
+that uses capabilities in both \hybridCOrCpp{} and \purecapCOrCpp{},
+\ccode{\%lp} is also permitted in \purecapCOrCpp{}, much like how \uucap is
+allowed as a redundant qualifier even in \purecapCOrCpp{}.
+
 \section{Code examples}
 \label{section:hybrid-c-examples}
 
