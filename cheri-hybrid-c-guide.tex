@@ -105,6 +105,9 @@
 
 \newcommand{\uucap}{{\ccode{\_\_capability}}\xspace}
 
+\newcommand{\addrof}{\ccode{\&}\xspace}
+\newcommand{\capaddrof}{\ccode{\_\_capability \&}\xspace}
+
 \newcommand{\SIGPROT}{{\ccode{SIGPROT}}\xspace}
 
 \newcommand{\futurevariant}[1]{{\color{teal} #1}}
@@ -359,7 +362,7 @@ This report describes how \hybridCAndCpp{}:
 \item Affect standard C-language types (such as \cintptrt{}), casts
 \jbarmnote{It would be useful to describe C++ casts here (e.g.
     \ccode{reinterpret\_cast}).}, and the
-  address-of operator (\ccode{\&});
+  address-of operator (\addrof);
 \item May support extended C and POSIX memory-management APIs;
 \item Are used in our current larger code corpora, such as CheriBSD's
   CheriABI system-call layer~\cite{davis2019:cheriabi}; and
@@ -742,14 +745,14 @@ on systems where DDC includes userspace addresses (all of them today).}
 
 \subsection{Address-of operator (\&)}
 
-The \ccode{\&} operator takes the address of a C or \cpp{} variable, and
+The \addrof operator takes the address of a C or \cpp{} variable, and
 returns a pointer of a corresponding type.
 We consider three approaches:
 
 \begin{description}
 \item[Integer pointer interpretation] is the approach taken by CHERI
   Clang/LLVM.
-  In this approach, \ccode{\&} returns an integer pointer type, the default
+  In this approach, \addrof returns an integer pointer type, the default
   pointer type in \hybridCOrCpp{}.
   If then assigned to a capability pointer, the resulting bounds and
   permissions are derived from the Default Data Capability (DDC).
@@ -762,22 +765,22 @@ given next.}
 \bdnote{\&<something of capability type> remains a capability. This requires clarification.}
 \jrtcnote{Well, \ccode{void * \_\_capability p = ...; void * \_\_capability *q = \&p;}
 is right despite having \&<something of capability type> here. The distinction
-is around whether \ccode{\&} introduces an additional level of indirection or
+is around whether \addrof introduces an additional level of indirection or
 is being used to derive a new pointer that is an offset from its input.
-Indirecting-\ccode{\&} would always need the right qualifier, and is what
-currently always returns an integer pointer. Offsetting-\ccode{\&} is currently
+Indirecting-\addrof would always need the right qualifier, and is what
+currently always returns an integer pointer. Offsetting-\addrof is currently
 polymorphic (though there are some bugs around that) but in the qualified world
 becomes less clear: keeping it polymorphic would require fewer code changes,
 but would then lack consistency with the indirecting variant. I would imagine
-that \ccode{\_\_capability \&} would always be permitted as a way to offset
+that \capaddrof would always be permitted as a way to offset
 into a capability regardless though because there's no good reason not to allow
 it (unless the distinction between the two wants to be made more clear, but
-\ccode{\&} is already confusing enough, especially when you start talking about
+\addrof is already confusing enough, especially when you start talking about
 arrays).}
 
-\item[Polymorphic \ccode{\&}] \morellovariant{is the approach taken by Morello
+\item[Polymorphic \addrof] \morellovariant{is the approach taken by Morello
   Clang/LLVM.
-  In this approach, \ccode{\&} is polymorphic: if assigned to a capability
+  In this approach, \addrof is polymorphic: if assigned to a capability
   pointer, the resulting bounds and permissions are those of the underlying
   type.}
   
@@ -787,26 +790,26 @@ arrays).}
   \dcnote{Is this equivalent to making it return a capability and silencing
     warnings if you cast that value to an integer pointer without storing it?}
 
-\item[Qualified \ccode{\&}]
-  \futurevariant{This approach would qualify or modify the \ccode{\&} operator
-  itself, perhaps in the form \ccode{\_\_capability \&}.
+\item[Qualified \addrof]
+  \futurevariant{This approach would qualify or modify the \addrof operator
+  itself, perhaps in the form \capaddrof.
   This approach would avoid polymorphic behavior with the effect of the
-  \ccode{\&} operator having different behavior based on others of a complex
+  \addrof operator having different behavior based on others of a complex
   expression, or drawn from the type of the left-hand side of an assignment.
   Currently, no similar constructs to qualify or modify operators exist in the C
   language.}
 \end{description}
 
-\jbarmnote{Though rarely useful, the C++ \ccode{\&} operator can be overloaded.
+\jbarmnote{Though rarely useful, the C++ \addrof operator can be overloaded.
 How does this interact?}
 \jrtcnote{Easy answer is to forbid it whenever the operator is overloaded. If
 it's something that's needed we could look into allowing you to write a
 \ccode{T * \_\_capability operator \_\_capability \&()} overload (and continuing
-to forbid \ccode{\_\_capability \&} on types with an overloaded plain
-\ccode{\&})}
+to forbid \capaddrof on types with an overloaded plain
+\addrof)}
 
 Another potential approach, avoided in our work to date, is to support a
-silent downcast from a capability-pointer typed \ccode{\&} operator.
+silent downcast from a capability-pointer typed \addrof operator.
 In general, we feel strongly that casts from capability-pointer types to
 integer-pointer types should generate warnings (or even errors) due to the
 potential for lost protection information and confusing outcomes.
@@ -871,7 +874,7 @@ temporal safety via capability revocation.
 
 \jbarmnote{Is there a \ccode{realloc\_c()}? What about
 \ccode{new}/\ccode{delete}? Would they follow a scheme similar to the chosen
-scheme for \ccode{\&}? Can I use placement-\ccode{new}
+scheme for \addrof? Can I use placement-\ccode{new}
 into a \uucap{} buffer?}
 
 \jbarmnote{Have variants of smart pointers (e.g. \ccode{unique\_cap}
