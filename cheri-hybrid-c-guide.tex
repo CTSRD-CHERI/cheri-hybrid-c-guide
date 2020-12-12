@@ -860,17 +860,27 @@ For the time being, we define extended interfaces to the heap allocator.
 \item[\ccode{free\_c()}] Based on the \ccode{free()} API, free a heap
   allocation, taking a capability pointer rather than an integer pointer
   argument.
+
+\item[\ccode{realloc\_c()}] Based on the \ccode{realloc()} API, this takes a
+  capability pointer rather than an integer pointer argument and either
+  resizes the existing allocation or creates a new allocation with contents
+  copied from the existing allocation. This variant returns a capability
+  pointer rather than an integer pointer that has the same alignment and
+  padding guarantees as \ccode{malloc\_c()}. As with \purecapCOrCpp{}, care
+  must be taken to account for the stronger bounds and provenance requirements
+  of capabilities when updating pointers derived from the original allocation.
 \end{description}
 
-Whether \ccode{free\_c()} supports freeing any heap allocations provided by
-the un-extended \ccode{malloc()} interface will depend on the implementation,
-and it is recommended that portable code only pass capability values returned
-by \ccode{malloc\_c()} be passed to \ccode{free\_c()}.
+Whether \ccode{free\_c()} and \ccode{realloc\_c()} support freeing any heap
+allocations provided by the un-extended \ccode{malloc()}/\ccode{realloc()}
+interface will depend on the implementation, and it is recommended that
+portable code only pass capability values returned by \ccode{malloc\_c()} and
+\ccode{realloc\_c()} be passed to \ccode{free\_c()}.
 This permits use of a different heap allocator implementation better able to
 implement alignment or padding requirements, or, for example, able to support
 temporal safety via capability revocation.
 
-\jbarmnote{Is there a \ccode{realloc\_c()}? What about
+\jbarmnote{What about
 \ccode{new}/\ccode{delete}? Would they follow a scheme similar to the chosen
 scheme for \addrof? Can I use placement-\ccode{new}
 into a \uucap{} buffer?}
