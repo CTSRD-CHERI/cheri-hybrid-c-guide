@@ -854,10 +854,8 @@ For the time being, we define extended interfaces to the heap allocator.
 \begin{description}
 \item[\ccode{malloc\_c()}] Based on the \ccode{malloc()} API, this
   capability-enabled variant returns a capability pointer rather than integer
-  pointer to a new suitably aligned and padded heap memory allocation.
-
-\jbarmnote{Does "suitably aligned" mean that I can store a \uucap{} in it, or
-    that the returned bounds will be representable?}
+  pointer to a new heap memory allocation suitably aligned and padded to ensure
+  exact bounds.
 
 \item[\ccode{free\_c()}] Based on the \ccode{free()} API, free a heap
   allocation, taking a capability pointer rather than an integer pointer
