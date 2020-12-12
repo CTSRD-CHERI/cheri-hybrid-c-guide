@@ -499,6 +499,10 @@ void myclass::mymethod(char & __capability c)
 \end{lstlisting}
 
 \jbarmnote{How does \uucap{} interact with C++ templates?}
+\jrtcnote{The intent is that it works just how you'd expect. I recently did some
+work so even \ccode{T \_\_capability} ``just works'' (subject to bugs), and
+template specialisation is intended to take the qualifier into account, i.e.\@
+it hopefully needs very little documentation.}
 
 \noindent
 Unqualified explicit pointers and \cpp{} references will be implemented as
@@ -646,6 +650,13 @@ order to maximize compatibility, including \cintptrt, \cuintptrt, and
 \maxalignt. \jbarmnote{Is \maxalignt guaranteed to require as much alignment as
 a capability? That would be consistent with its intended use (and I hope its
 "current use"), but then why list it here?}
+\jrtcnote{That's a difficult one. In practice I think so on any system CHERI will
+ever exist; 64-bit architectures are pretty settled on it being 16, but
+technically there's no guarantee given hybrid's \maxalignt is constrained by
+whatever is already used for non-CHERI, and changing it would break ABI
+(\hybridCOrCpp{} is supposed to be ABI compatible with existing legacy code
+such that on a CHERI-enabled system the lib64 or equivalent libraries are just
+hybrid ones, rather than needing yet another set of libraries).}
 This is inconvenient with respect to capability pointer types, which cannot
 be stored (without a downcast to an integer pointer type, losing capability
 metadata) in \cintptrt.
@@ -788,6 +799,11 @@ arrays).}
 
 \jbarmnote{Though rarely useful, the C++ \ccode{\&} operator can be overloaded.
 How does this interact?}
+\jrtcnote{Easy answer is to forbid it whenever the operator is overloaded. If
+it's something that's needed we could look into allowing you to write a
+\ccode{T * \_\_capability operator \_\_capability \&()} overload (and continuing
+to forbid \ccode{\_\_capability \&} on types with an overloaded plain
+\ccode{\&})}
 
 Another potential approach, avoided in our work to date, is to support a
 silent downcast from a capability-pointer typed \ccode{\&} operator.
