@@ -885,8 +885,40 @@ temporal safety via capability revocation.
 scheme for \addrof? Can I use placement-\ccode{new}
 into a \uucap{} buffer?}
 
+\jrtcnote{If you wanted them I guess so (either as \ccode{new\_c} to match
+\ccode{malloc\_c()} or as \ccode{\_\_capability new} to match \capaddrof given
+it's an operator). I imagine the \cpp{}-y thing to do for placement-\ccode{new}
+would just be to overload it (and maybe also permit \ccode{new\_c} /
+\ccode{\_\_capability new} as an explicit form). So far we have kept
+\hybridCOrCpp{} as limited as possible and only added features that we have
+needed. Supporting these kinds of things properly is doable but a lot of work
+for likely very-niche uses cases, if any.}
+
 \jbarmnote{Have variants of smart pointers (e.g. \ccode{unique\_cap}
 and \ccode{shared\_cap}) been considered?}
+
+\jrtcnote{I don't think so. My instinct would be that such code is likely to be
+relatively easily ported to \purecapCOrCpp{} by virtue of being written in
+modern \cpp{} that does less horrendous things with pointers and that kernels
+and firmware tend not to be written as \cpp{} code using the standard library.
+The primary reason you'd want it is if \purecapCOrCpp{}'s pointer size increase
+turns out to cause too much of a performance hit to certain kinds of big \cpp{}
+applications. Supporting such a thing is easy to do though, just very tedious
+to go through your standard library of choice and add all the capability
+variants of things you could want. There's also the risk that providing too
+rich support for capabilities in \hybridCOrCpp{} would encourage people to use
+it over \purecapCOrCpp{} when they have no real need to, whereas making it more
+limited encourages more people to use the more-secure \purecapCOrCpp{}. Also,
+how far would you take it? Would you add \ccode{\_c} variants of all the data
+structures? What about all the \ccode{<algorithm>} functions that take
+pointers? We see the same thing in C to some extent and provide only the bare
+minimum, so doing anything other than that for \cpp{} would be at odds with
+that. Also, higher-level \cpp{} like this is more likely to be using library
+functions than the C code we've been targeting, so even if on the surface
+\ccode{unique\_cap} would be useful, it'd likely turn out to be almost useless
+due to all the code that would use it requiring a bunch of capability variants
+for other parts of the standard library, and which parts are used is likely to
+vary across codebases.}
 
 \subsection{POSIX memory mappings}
 
