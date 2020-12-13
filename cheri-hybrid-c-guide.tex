@@ -133,6 +133,7 @@
 \newcommand{\dcnote}[1]{\note{#1}{David}}
 \newcommand{\jhbnote}[1]{\note{#1}{John B.}}
 \newcommand{\jbarmnote}[1]{\note{#1}{Jacob B.}}
+\newcommand{\raarmnote}[1]{\note{#1}{Ruben A.}}
 
 % typeset C++ sensibly
 % NB: \nolinebreak was only made robust upstream on 2019-08-20
@@ -219,7 +220,7 @@ capabilities.
 \hybridCOrCpp{} primarily sees use in specialized low-level systems code that,
 for compatibility or performance reasons, must use non-capability pointers, or
 on the boundaries between pure-capability and conventional generated code.
-Current use cases includes boot loaders, operating-system kernels, and
+Current use cases include boot loaders, operating-system kernels, and
 Inter-Process Communication (IPC) runtimes.
 Potential future use cases include programs that have been formally verified
 (which do not require dynamic memory safety) and code that has high static or
@@ -239,7 +240,7 @@ despite possibly having a non-NULL DDC?}
 %Because the benefits of referential, spatial, and temporal memory safety are
 %unavailable to both the program and language runtime, care should be utilized,
 %and \hybridCOrCpp{} should be used only where strictly necessary.
-Because the benefits of CHERI referential, spatial, and temporal memory safety are
+Because the implicit benefits of CHERI referential, spatial, and temporal memory safety are
 unavailable to both the program and language runtime in \hybridCOrCpp{},
 its use requires care and should be avoided unless strictly necessary.
 
@@ -307,7 +308,8 @@ These include the hybrid CheriBSD kernel and hybrid userspace examples.
 code, and for most intents and purposes behaves identically.
 The principal difference is that annotation of pointer types with \uucap{}
 causes pointers of those types to be implemented using architectural
-capabilities, and that various \purecapCOrCpp{} APIs are available:
+capabilities, so to be subject to capability semantics including checks upon
+memory accesses, and that various \purecapCOrCpp{} APIs are available:
 
 \jbarmnote{In the code below: \textit{"Create a capability pointer from an
 integer pointer"} looks like it forges a capability. Perhaps mention that it
@@ -531,7 +533,7 @@ We consider three cases:
   Wherever the ABI dictates that implied pointers must be integer pointers,
   that will be maintained by \hybridCOrCpp{} code generation and in the
   language runtime.
-  For example, the hybrid ABI requires that the stack pointer be an integer
+  For example, the hybrid ABI requires that the stack pointer is an integer
   pointer.
   \dcnote{This isn't clear to me as a general point.  An ISA that had an
     architectural stack pointer could have a stack capability and define the
@@ -1129,6 +1131,11 @@ offset to DDC, pointers and simple compressed references differ only in size.}
 programming models. I'm not sure if that's worth clarifying or not. There is
 also no requirement for the JIT or interpreter to use the same reference
 representation as the C/C++ part of a VM (though in practice it probably will).}
+
+\raarmnote{Seems useful to have a semi-hybrid mode which requires all executable
+pointers to be capabilities with executable permissions cleared in the DDC. This
+isn't compatible with code taking/storing callbacks unless explicitly updated.
+Not sure yet where would be the right section for this note.}
 
 
 \section{Limitations}
